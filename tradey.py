@@ -7,6 +7,8 @@
     see www.themanaworld.org
 """
 import time
+import os
+from subprocess import call
 from xml.etree.ElementTree import *
 
 class UserTree:
@@ -94,6 +96,13 @@ class ItemTree:
         # Be sure to call save() after any changes to the tree.
         self.tree = ElementTree(self.root)
         self.tree.write("data/sale.xml")
+
+def saveData():
+    cwd = os.getcwd()
+    os.chdir("data")
+    call(["git", "commit","-a", '-m transaction'])
+    os.chdir("..")
+
 
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

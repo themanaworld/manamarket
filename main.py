@@ -986,7 +986,7 @@ def main():
                     if trader_state.item.get == 1: # !add
                         sale_tree.add_item(trader_state.item.player, trader_state.item.id, trader_state.item.amount, trader_state.item.price)
                         user_tree.get_user(trader_state.item.player).set('used_stalls', \
-                                                                         str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
+                            str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
 
                     elif trader_state.item.get == 0: # !buy \ !getback
                         seller = sale_tree.get_uid(trader_state.item.uid).get('name')
@@ -1009,6 +1009,8 @@ def main():
 
                 sale_tree.save()
                 user_tree.save()
+                tradey.saveData()
+
                 trader_state.reset()
                 logging.info("Trade Complete.")
                 print "SMSG_TRADE_COMPLETE"

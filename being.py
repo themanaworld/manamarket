@@ -10,21 +10,21 @@ def job_type(job):
 
 class BeingManager:
     def __init__(self):
-	self.container = {}
+        self.container = {}
 
     def findId(self, name):
-	for i in self.container:
-	   if self.container[i].name == name:
-		return i
-	return -10
+        for i in self.container:
+           if self.container[i].name == name:
+                return i
+        return -10
 
 class Being:
     def __init__(self, being_id, job):
         self.id = being_id
-	self.name = ""
-	self.x = 0
-	self.y = 0
-	self.action = ""
-	self.job = job
-	self.target = 0
-	self.type = job_type(job)
+        self.name = ""
+        self.x = 0
+        self.y = 0
+        self.action = ""
+        self.job = job
+        self.target = 0
+        self.type = job_type(job)

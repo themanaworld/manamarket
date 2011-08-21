@@ -44,7 +44,9 @@ class UserTree:
     def save(self):
         # Be sure to call save() after any changes to the tree.
         self.tree = ElementTree(self.root)
-        self.tree.write("data/user.xml")
+        f=open("data/user.xml","w")
+        f.write(etree.tostring(root, pretty_print=True))
+        f.close()
 
 class ItemTree:
     def __init__(self):
@@ -95,7 +97,9 @@ class ItemTree:
     def save(self):
         # Be sure to call save() after any changes to the tree.
         self.tree = ElementTree(self.root)
-        self.tree.write("data/sale.xml")
+        f = open("data/sale.xml", "w")
+        f.write(etree.tostring(root, pretty_print=True))
+        f.close()
 
 def saveData(commitmessage = "commit"):
     # This assumes the current working directory is the tradey directory.

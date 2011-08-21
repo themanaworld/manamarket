@@ -24,7 +24,7 @@ class UserTree:
         return -10
 
     def remove_user(self, name):
-            for elem in self.root:
+        for elem in self.root:
             if elem.get("name") == name:
                 self.root.remove(elem)
                 self.save()
@@ -74,7 +74,7 @@ class ItemTree:
         return -10
 
     def remove_item_uid(self, uid):
-            for elem in self.root:
+        for elem in self.root:
             if elem.get("uid") == str(uid):
                 self.root.remove(elem)
                 self.remove_id(uid)

@@ -18,8 +18,15 @@ import sys
 import time
 import string
 
+
+
 from being import *
-from data.config import *
+try:
+    from config import *
+except:
+    print "no config file found. please move config.py.template to config.py and edit to your needs!"
+    exit(0);
+
 from net.packet import *
 from net.protocol import *
 from net.packet_out import *
@@ -101,7 +108,7 @@ def process_whisper(nick, msg, mapserv):
 
                     msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
                         ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
-                        mapserv.sendall(whisper(nick, msg))
+                    mapserv.sendall(whisper(nick, msg))
 
             money = int(user.get('money'))
             mapserv.sendall(whisper(nick, "You have " + str(money) + "gp to collect."))

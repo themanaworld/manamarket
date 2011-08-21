@@ -524,7 +524,6 @@ def main():
     charport = 0
     # Login server packet loop.
     while True:
-        #time.sleep(0.1)
         data = login.recv(1500)
         if not data:
             break

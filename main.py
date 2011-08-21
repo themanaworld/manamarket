@@ -22,7 +22,7 @@ import string
 
 from being import *
 try:
-    from config import *
+    import config
 except:
     print "no config file found. please move config.py.template to config.py and edit to your needs!"
     exit(0);
@@ -500,12 +500,12 @@ def main():
     logging.basicConfig(filename='data/logs/activity.log', level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Bot Started.")
 
-    account = sys.argv[1]
-    password = sys.argv[2]
-    character = sys.argv[3]
+    account = config.account
+    password = config.password
+    character = config.character
 
     login = socket.socket()
-    login.connect((server, port))
+    login.connect((config.server, config.port))
     print("Login connected")
 
     login_packet = PacketOut(0x0064)

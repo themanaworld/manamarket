@@ -490,7 +490,7 @@ def process_whisper(nick, msg, mapserv):
 		trader_state.reset()
 
 def main():
-    logging.basicConfig(filename='logs/activity.log', level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    logging.basicConfig(filename='data/logs/activity.log', level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Bot Started.")
 
     account = sys.argv[1]

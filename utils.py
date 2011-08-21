@@ -65,7 +65,7 @@ class ItemDB:
 class ItemLog:
     """ Writes all sales to a log file, for later processing."""
     def __init__(self):
-        self.log_file = 'logs/sale.log'
+        self.log_file = 'data/logs/sale.log'
 
     def add_item(self, item_id, amount, price):
         file_node = open(self.log_file, 'a')

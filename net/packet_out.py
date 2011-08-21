@@ -24,7 +24,7 @@ def sit(val):
     sit_packet = PacketOut(CMSG_PLAYER_CHANGE_ACT)
     sit_packet.write_int32(0)
     if val == True:
-    	sit_packet.write_int8(2)
+        sit_packet.write_int8(2)
     else:
         sit_packet.write_int8(3)
     return str(sit_packet)
@@ -39,11 +39,11 @@ def trade_respond(accept):
     if accept == True:
         trade_respond_packet.write_int8(3)
     elif accept == False:
-	trade_respond_packet.write_int8(4)
+        trade_respond_packet.write_int8(4)
     return str(trade_respond_packet)
 
 def trade_add_item(item_index, amount):
-    trade_add_packet = PacketOut(CMSG_TRADE_ITEM_ADD_REQUEST)   
+    trade_add_packet = PacketOut(CMSG_TRADE_ITEM_ADD_REQUEST)
     trade_add_packet.write_int16(item_index + inventory_offset)
     trade_add_packet.write_int32(amount)
     return str(trade_add_packet)

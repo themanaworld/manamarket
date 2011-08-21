@@ -47,99 +47,99 @@ packet_lengths = [
 
 class PacketOut:
     def __init__(self, out):
-	self.buff = ""
+        self.buff = ""
         self.write_int16(out)
 
     def __str__(self):
-	return self.buff
+        return self.buff
 
     def write_string(self, string_val, length):
-	self.buff += string_val.ljust(length, '\0')
+        self.buff += string_val.ljust(length, '\0')
 
     def write_int8(self, value):
-	self.buff += struct.pack("<B", value)
+        self.buff += struct.pack("<B", value)
 
     def write_int16(self, value):
-	self.buff += struct.pack("<H", value)
+        self.buff += struct.pack("<H", value)
 
     def write_int32(self, value):
-	self.buff += struct.pack("<L", value)
-    
+        self.buff += struct.pack("<L", value)
+
     def write_coords(self, x, y, direction):
         tmp = x
-	tmp <<= 6
-	d_0 = 0
-	d_1 = 1
-	d_2 = 2
-	d_0 = (tmp >> 8) % 256
-	d_1 = (tmp) % 256
-	tmp = y
-	tmp <<= 4
-	d_1 |= (tmp >> 8) % 256
-	d_2 = tmp % 256
-	d_2 |= direction
-	self.buff += chr(d_0) + chr(d_1) + chr(d_2)
+        tmp <<= 6
+        d_0 = 0
+        d_1 = 1
+        d_2 = 2
+        d_0 = (tmp >> 8) % 256
+        d_1 = (tmp) % 256
+        tmp = y
+        tmp <<= 4
+        d_1 |= (tmp >> 8) % 256
+        d_2 = tmp % 256
+        d_2 |= direction
+        self.buff += chr(d_0) + chr(d_1) + chr(d_2)
 
 class PacketIn:
     def __init__(self, set_data, pkt_type):
         self.data = set_data
-	self.pkttype = pkt_type
-	self.pos = 0
+        self.pkttype = pkt_type
+        self.pos = 0
 
     def is_type(self, pkt_type):
-	return self.pkttype == pkt_type
-    
+        return self.pkttype == pkt_type
+
     def get_type(self):
-	return self.pkttype
+        return self.pkttype
 
     def read_string(self, length):
-	msg = self.data[self.pos:self.pos + length]
-	self.pos = self.pos + length
-	return msg[:msg.find('\0')]
+        msg = self.data[self.pos:self.pos + length]
+        self.pos = self.pos + length
+        return msg[:msg.find('\0')]
 
     def read_raw_string(self, length):
-	msg = self.data[self.pos:self.pos + length]
-	self.pos = self.pos + length
-	return msg
+        msg = self.data[self.pos:self.pos + length]
+        self.pos = self.pos + length
+        return msg
 
     def read_int8(self):
-	int_value = struct.unpack("<B", self.data[self.pos:self.pos + 1])[0]
-	self.pos = self.pos + 1
-	return int_value
+        int_value = struct.unpack("<B", self.data[self.pos:self.pos + 1])[0]
+        self.pos = self.pos + 1
+        return int_value
 
     def make_word(self, low, high):
-	return (low | (high << 8))
+        return (low | (high << 8))
 
     def read_coord_pair(self):
-	cdata = self.data[self.pos:self.pos + 5]
-	dst_x = (self.make_word(struct.unpack("<B", cdata[3])[0], struct.unpack("<B", cdata[2])[0] & 0x000f) >> 2)
-	dst_y = self.make_word(struct.unpack("<B", cdata[4])[0], struct.unpack("<B", cdata[3])[0] & 0x0003)
+        cdata = self.data[self.pos:self.pos + 5]
+        dst_x = (self.make_word(struct.unpack("<B", cdata[3])[0], struct.unpack("<B", cdata[2])[0] & 0x000f) >> 2)
+        dst_y = self.make_word(struct.unpack("<B", cdata[4])[0], struct.unpack("<B", cdata[3])[0] & 0x0003)
 
-	src_x = (self.make_word(struct.unpack("<B", cdata[1])[0], struct.unpack("<B", cdata[0])[0]) >> 6)
-	src_y = (self.make_word(struct.unpack("<B", cdata[2])[0], struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4)
-	self.pos = self.pos + 5
-	return src_x, src_y, dst_x, dst_y
+        src_x = (self.make_word(struct.unpack("<B", cdata[1])[0], struct.unpack("<B", cdata[0])[0]) >> 6)
+        src_y = (self.make_word(struct.unpack("<B", cdata[2])[0], struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4)
+        self.pos = self.pos + 5
+        return src_x, src_y, dst_x, dst_y
 
     def read_coord_dir(self):
-	cdata = self.data[self.pos:self.pos + 3]
-	x = (self.make_word(struct.unpack("<B", cdata[1])[0] & 0x00c0, struct.unpack("<B", cdata[0])[0] & 0x00ff) >> 6) % 255
+        cdata = self.data[self.pos:self.pos + 3]
+        x = (self.make_word(struct.unpack("<B", cdata[1])[0] & 0x00c0, struct.unpack("<B", cdata[0])[0] & 0x00ff) >> 6) % 255
         y = (self.make_word(struct.unpack("<B", cdata[2])[0] & 0x00f0, struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4) % 255
         dir = struct.unpack("<B", cdata[2])[0] & 0x000f
-	self.pos = self.pos + 3
+        self.pos = self.pos + 3
         return x, y, dir
 
     def read_int16(self):
-	int_value = struct.unpack("<H", self.data[self.pos:self.pos + 2])[0]
-	self.pos = self.pos + 2
-	return int_value
+        int_value = struct.unpack("<H", self.data[self.pos:self.pos + 2])[0]
+        self.pos = self.pos + 2
+        return int_value
 
     def read_int32(self):
-	int_value = struct.unpack("<L", self.data[self.pos:self.pos + 4])[0]
-	self.pos = self.pos + 4
-	return int_value
+        int_value = struct.unpack("<L", self.data[self.pos:self.pos + 4])[0]
+        self.pos = self.pos + 4
+        return int_value
 
     def skip(self, count):
-	self.pos = self.pos + count
+        self.pos = self.pos + count
 
 class PacketBuffer:
     def __init__(self):
@@ -158,7 +158,7 @@ class PacketBuffer:
         if len(self.buff) < 2:
             raise StopIteration
 
-	pktlen = 0
+        pktlen = 0
         pkttype = struct.unpack("<H", self.buff[:2])[0]
         assert pkttype < len(packet_lengths)
         assert packet_lengths[pkttype] != 0
@@ -174,6 +174,6 @@ class PacketBuffer:
         if len(self.buff) < pktlen:
             raise StopIteration
 
-	packet = PacketIn(self.buff[2:pktlen], pkttype)
+        packet = PacketIn(self.buff[2:pktlen], pkttype)
         self.buff = self.buff[pktlen:]
         return packet

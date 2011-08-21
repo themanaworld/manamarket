@@ -996,7 +996,7 @@ def main():
                         sale_tree.get_uid(trader_state.item.uid).set("amount", str(current_amount - trader_state.item.amount))
                         if int(item.get("amount")) == 0:
                             user_tree.get_user(sale_tree.get_uid(trader_state.item.uid).get('name')).set('used_stalls', \
-                                                                                                         str(int(user_tree.get_user(sale_tree.get_uid(trader_state.item.uid).get('name')).get('used_stalls'))-1))
+                                str(int(user_tree.get_user(sale_tree.get_uid(trader_state.item.uid).get('name')).get('used_stalls'))-1))
                             sale_tree.remove_item_uid(trader_state.item.uid)
 
                         current_money = int(user_tree.get_user(seller).get("money"))

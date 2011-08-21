@@ -98,7 +98,7 @@ class ItemTree:
         self.tree.write("data/sale.xml")
 
 def saveData(commitmessage = "commit"):
-    cwd = os.getcwd()
+    # This assumes the current working directory is the tradey directory.
     os.chdir("data")
     call(["git", "commit","-a", '-m "' + commitmessage + '"'])
     os.chdir("..")

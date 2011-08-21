@@ -252,6 +252,7 @@ def process_whisper(nick, msg, mapserv):
 
             user_tree.get_user(name).set('stalls', str(slot))
             mapserv.sendall(whisper(nick, "Slots changed: "+name+" "+str(slot)))
+	    tradey.saveData("User: "+player_name+", Slots changed: "+str(slot))
             user_tree.save()
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
@@ -283,6 +284,7 @@ def process_whisper(nick, msg, mapserv):
                 user_tree.get_user(name).set('accesslevel', str(accesslevel))
                 mapserv.sendall(whisper(nick, "Access level changed:"+name+ " ("+str(accesslevel)+")."))
                 user_tree.save()
+		tradey.saveData("User: "+player_name+", Set Access Level: "+str(accesslevel))
             else:
                 mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
                 return
@@ -309,6 +311,7 @@ def process_whisper(nick, msg, mapserv):
             player_name = " ".join(broken_string[3:])
             user_tree.add_user(player_name, stalls, al)
             mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
+	    tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
 
@@ -419,6 +422,7 @@ def process_whisper(nick, msg, mapserv):
         check = user_tree.remove_user(player_name)
         if check == 1:
             mapserv.sendall(whisper(nick, "User Removed."))
+	    tradey.saveData("User Removed: "+player_name)
         elif check == -10:
             mapserv.sendall(whisper(nick, "User removal failed. Please check spelling."))
 

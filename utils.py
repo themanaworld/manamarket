@@ -1,3 +1,11 @@
+#!/usr/bin/python
+"""
+    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+    Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
+
+    This file is part of tradey, a trading bot in the mana world
+    see www.themanaworld.org
+"""
 from xml.etree.ElementTree import ElementTree
 from player import Item
 
@@ -113,3 +121,6 @@ class Broadcast:
     def stop(self):
         self.Active = False
         self.shop_broadcast.join()
+
+if __name__ == '__main__':
+    print "Do not run this file directly. Run main.py"

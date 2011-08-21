@@ -1,3 +1,11 @@
+#!/usr/bin/python
+"""
+    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+    Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
+
+    This file is part of tradey, a trading bot in the mana world
+    see www.themanaworld.org
+"""
 class Item:
     pass
 
@@ -29,3 +37,6 @@ class Player:
                 if self.inventory[item].itemId == item_id:
                     return item
         return -10 # Not found - bug somewhere!
+
+if __name__ == '__main__':
+    print "Do not run this file directly. Run main.py"

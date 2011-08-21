@@ -1,3 +1,12 @@
+#!/usr/bin/python
+"""
+    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+    Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
+
+    This file is part of tradey, a trading bot in the mana world
+    see www.themanaworld.org
+"""
+
 def job_type(job):
     if (job <= 25 or (job >= 4001 and job <= 4049)):
         return "player"
@@ -28,3 +37,6 @@ class Being:
         self.job = job
         self.target = 0
         self.type = job_type(job)
+
+if __name__ == '__main__':
+    print "Do not run this file directly. Run main.py"

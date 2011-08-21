@@ -1,3 +1,11 @@
+#!/usr/bin/python
+"""
+    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+    Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
+
+    This file is part of tradey, a trading bot in the mana world
+    see www.themanaworld.org
+"""
 import time
 from xml.etree.ElementTree import *
 
@@ -86,3 +94,6 @@ class ItemTree:
         # Be sure to call save() after any changes to the tree.
         self.tree = ElementTree(self.root)
         self.tree.write("data/sale.xml")
+
+if __name__ == '__main__':
+    print "Do not run this file directly. Run main.py"

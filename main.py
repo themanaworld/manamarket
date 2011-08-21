@@ -1,7 +1,10 @@
+#!/usr/bin/python
 """
-    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
 
-    This package implements an Automated Market Bot for "The Mana World" a 2D MMORPG.
+    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+    Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
+
+    tradey, a package, which implements an Automated Market Bot for "The Mana World" a 2D MMORPG.
 
     - Currently permissions are defined as: -1 (blocked), 0 (normal user), 5 (seller), 20 (admin).
     - An item will only be listed for a period of one week, and can be relisted

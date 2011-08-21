@@ -77,7 +77,7 @@ class PacketOut:
 	tmp <<= 4
 	d_1 |= (tmp >> 8) % 256
 	d_2 = tmp % 256
-	# d_2 |= direction
+	d_2 |= direction
 	self.buff += chr(d_0) + chr(d_1) + chr(d_2)
 
 class PacketIn:
@@ -108,15 +108,15 @@ class PacketIn:
 	return int_value
 
     def make_word(self, low, high):
-	return ((low | high) << 8)
+	return (low | (high << 8))
 
     def read_coord_pair(self):
 	cdata = self.data[self.pos:self.pos + 5]
-	dst_x = (self.make_word(struct.unpack("<B", cdata[3])[0], struct.unpack("<B", cdata[2])[0] & 0x000f) >> 2) % 255
-	dst_y = self.make_word(struct.unpack("<B", cdata[4])[0], struct.unpack("<B", cdata[3])[0] & 0x0003) % 255
+	dst_x = (self.make_word(struct.unpack("<B", cdata[3])[0], struct.unpack("<B", cdata[2])[0] & 0x000f) >> 2)
+	dst_y = self.make_word(struct.unpack("<B", cdata[4])[0], struct.unpack("<B", cdata[3])[0] & 0x0003)
 
-	src_x = (self.make_word(struct.unpack("<B", cdata[1])[0], struct.unpack("<B", cdata[0])[0]) >> 6) % 255
-	src_y = (self.make_word(struct.unpack("<B", cdata[2])[0], struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4) % 255
+	src_x = (self.make_word(struct.unpack("<B", cdata[1])[0], struct.unpack("<B", cdata[0])[0]) >> 6)
+	src_y = (self.make_word(struct.unpack("<B", cdata[2])[0], struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4)
 	self.pos = self.pos + 5
 	return src_x, src_y, dst_x, dst_y
 

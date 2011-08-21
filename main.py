@@ -252,7 +252,7 @@ def process_whisper(nick, msg, mapserv):
 
             user_tree.get_user(name).set('stalls', str(slot))
             mapserv.sendall(whisper(nick, "Slots changed: "+name+" "+str(slot)))
-	    tradey.saveData("User: "+player_name+", Slots changed: "+str(slot))
+            tradey.saveData("User: "+player_name+", Slots changed: "+str(slot))
             user_tree.save()
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
@@ -284,7 +284,7 @@ def process_whisper(nick, msg, mapserv):
                 user_tree.get_user(name).set('accesslevel', str(accesslevel))
                 mapserv.sendall(whisper(nick, "Access level changed:"+name+ " ("+str(accesslevel)+")."))
                 user_tree.save()
-		tradey.saveData("User: "+player_name+", Set Access Level: "+str(accesslevel))
+                tradey.saveData("User: "+player_name+", Set Access Level: "+str(accesslevel))
             else:
                 mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
                 return
@@ -311,7 +311,7 @@ def process_whisper(nick, msg, mapserv):
             player_name = " ".join(broken_string[3:])
             user_tree.add_user(player_name, stalls, al)
             mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
-	    tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
+            tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
 
@@ -422,7 +422,7 @@ def process_whisper(nick, msg, mapserv):
         check = user_tree.remove_user(player_name)
         if check == 1:
             mapserv.sendall(whisper(nick, "User Removed."))
-	    tradey.saveData("User Removed: "+player_name)
+            tradey.saveData("User Removed: "+player_name)
         elif check == -10:
             mapserv.sendall(whisper(nick, "User removal failed. Please check spelling."))
 
@@ -985,12 +985,14 @@ def main():
                 print "SMSG_TRADE_CANCEL"
 
             elif packet.is_type(SMSG_TRADE_COMPLETE):
+                commitMessage=""
                 # The sale_tree is only ammended after a complete trade packet.
                 if trader_state.item and trader_state.money == 0:
                     if trader_state.item.get == 1: # !add
                         sale_tree.add_item(trader_state.item.player, trader_state.item.id, trader_state.item.amount, trader_state.item.price)
                         user_tree.get_user(trader_state.item.player).set('used_stalls', \
                             str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
+                        commitMessage = "Add"
 
                     elif trader_state.item.get == 0: # !buy \ !getback
                         seller = sale_tree.get_uid(trader_state.item.uid).get('name')
@@ -1007,13 +1009,15 @@ def main():
 
                         if trader_state.item.price * trader_state.item.amount != 0:
                             ItemLog.add_item(int(item.get('itemId')), trader_state.item.amount, trader_state.item.price * trader_state.item.amount)
+                        commitMessage = "Buy or Getback"
 
                 elif trader_state.money and trader_state.item == 0: # !money
                     user_tree.get_user(trader_state.money).set('money', str(0))
+                    commitMessage = "Money"
 
                 sale_tree.save()
                 user_tree.save()
-                tradey.saveData()
+                tradey.saveData(commitMessage)
 
                 trader_state.reset()
                 logging.info("Trade Complete.")

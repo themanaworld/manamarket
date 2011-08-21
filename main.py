@@ -1,4 +1,7 @@
-""" This package implements an Automated Market Bot for "The Mana World" a 2D MMORPG.
+"""
+    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+
+    This package implements an Automated Market Bot for "The Mana World" a 2D MMORPG.
 
     - Currently permissions are defined as: -1 (blocked), 0 (normal user), 5 (seller), 20 (admin).
     - An item will only be listed for a period of one week, and can be relisted
@@ -37,7 +40,7 @@ def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in string.printable, msg)
     user = user_tree.get_user(nick)
     broken_string = msg.split()
-    
+
     if user != -10:
         if int(user.get("accesslevel")) == -1: # A user who has been blocked for abuse.
 	    mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact <administrator>."))
@@ -49,7 +52,7 @@ def process_whisper(nick, msg, mapserv):
 	    mapserv.sendall(whisper(nick, "The following items are on sale:"))
 	else:
 	    mapserv.sendall(whisper(nick, "No items for sale."))
-	
+
 	for elem in sale_tree.root:
 	    if time.time() - float(elem.get('add_time')) < 604800: # Check if an items time is up.
 		msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + \
@@ -81,7 +84,7 @@ def process_whisper(nick, msg, mapserv):
 		mapserv.sendall(whisper(nick, "Item not found. Please check and try again."))
 	else:
 	    mapserv.sendall(whisper(nick, "Syntax incorrect"))
-	    
+
     elif msg == "!info":
         # Send information related to a player.
 	if user == -10:
@@ -105,7 +108,7 @@ def process_whisper(nick, msg, mapserv):
 	    stall_msg = "You have " + str(int(user.get('stalls')) - int(user.get('used_stalls'))) + " free slots."
 	    mapserv.sendall(whisper(nick, stall_msg))
 
-    elif broken_string[0] == "!help":	
+    elif broken_string[0] == "!help":
 	# Sends help information
 	if len(broken_string) == 1:
             mapserv.sendall(whisper(nick, "Welcome to ManaMarket!"))
@@ -141,7 +144,7 @@ def process_whisper(nick, msg, mapserv):
 	if user == -10:
 	    mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
 	    return
-	
+
 	amount = int(user.get('money'))
 	if amount == 0:
 	    mapserv.sendall(whisper(nick, "You have no money to collect."))
@@ -167,7 +170,7 @@ def process_whisper(nick, msg, mapserv):
 
 	items_found = False
 	item = " ".join(broken_string[1:]) # could be an id or an item name
-	
+
 	if item.isdigit(): # an id
 	    for elem in sale_tree.root:
 	        if ((time.time() - float(elem.get('add_time'))) < 604800) \
@@ -175,7 +178,7 @@ def process_whisper(nick, msg, mapserv):
 		    msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
                     + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
 		    mapserv.sendall(whisper(nick, msg))
-		    items_found = True		
+		    items_found = True
 	else: # an item name
 	    for elem in sale_tree.root:
 	        if ((time.time() - float(elem.get('add_time'))) < 604800) \
@@ -196,7 +199,7 @@ def process_whisper(nick, msg, mapserv):
         if int(user.get("accesslevel")) != 20:
 	    mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
 	    return
-	
+
 	data = ''
 
 	for user in user_tree.root:
@@ -209,7 +212,7 @@ def process_whisper(nick, msg, mapserv):
 	    # Format ManaMarket (20) 2/5 100000gp,
 
 	    if len(data) > 400:
-	        mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))	
+	        mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
 		data = ''
 
         mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
@@ -255,7 +258,7 @@ def process_whisper(nick, msg, mapserv):
 	if len(broken_string) < 3:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
 	    return
-	
+
 	if (broken_string[1][0] == '-' and broken_string[1][1:].isdigit()) or broken_string[1].isdigit():
 	    accesslevel = int(broken_string[1])
 	    name = " ".join(broken_string[2:])
@@ -265,17 +268,17 @@ def process_whisper(nick, msg, mapserv):
 	    if user_info == -10:
 		mapserv.sendall(whisper(nick, "User not found, check and try again."))
 		return
-	
+
 	    if int(user_info.get('accesslevel')) < int(user.get("accesslevel")) and accesslevel <= int(user.get("accesslevel")):
 		user_tree.get_user(name).set('accesslevel', str(accesslevel))
 		mapserv.sendall(whisper(nick, "Access level changed:"+name+ " ("+str(accesslevel)+")."))
 		user_tree.save()
 	    else:
-	        mapserv.sendall(whisper(nick, "You don't have the correct permissions."))	
-		return	
+	        mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
+		return
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
-	    
+
 
     elif broken_string[0] == "!adduser":
 	# A command to give a user access to the bot - !adduser <access level> <stall> <player name>.
@@ -312,7 +315,7 @@ def process_whisper(nick, msg, mapserv):
 	if int(user.get("accesslevel")) < 5:
 	    mapserv.sendall(whisper(nick, "You are unable to add items."))
 	    return
-	
+
 	if int(user.get("used_stalls")) >= int(user.get("stalls")):
 	    mapserv.sendall(whisper(nick, "You have no free slots.  You may remove an item or wait for something to be sold."))
 	    return
@@ -320,7 +323,7 @@ def process_whisper(nick, msg, mapserv):
 	if broken_string[1].isdigit() and broken_string[2].isdigit():
 	    amount = int(broken_string[1])
 	    price = int(broken_string[2])
-	    item_name = " ".join(broken_string[3:])	
+	    item_name = " ".join(broken_string[3:])
 	    item_id = ItemDB.findId(item_name)
 	    if item_id == -10:
 	        mapserv.sendall(whisper(nick, "Item not found, check spelling."))
@@ -333,7 +336,7 @@ def process_whisper(nick, msg, mapserv):
 	    item.amount = amount
 	    item.price = price
 	    trader_state.item = item
-		
+
 	    if not trader_state.Trading.testandset():
 		mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
 	        return
@@ -357,7 +360,7 @@ def process_whisper(nick, msg, mapserv):
 	    amount = int(broken_string[1])
 	    uid = int(broken_string[2])
 	    item_info = sale_tree.get_uid(uid)
-	
+
 	    if item_info == -10:
 		mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
 		return
@@ -385,7 +388,7 @@ def process_whisper(nick, msg, mapserv):
 		mapserv.sendall(whisper(nick, "That will be " + str(item.price * item.amount) + "gp."))
 	    else:
 		mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
-		trader_state.reset()	    
+		trader_state.reset()
 	else:
 	    mapserv.sendall(whisper(nick, "Syntax incorrect."))
 
@@ -408,7 +411,7 @@ def process_whisper(nick, msg, mapserv):
 	    mapserv.sendall(whisper(nick, "User Removed."))
 	elif check == -10:
 	    mapserv.sendall(whisper(nick, "User removal failed. Please check spelling."))
-    
+
     elif broken_string[0] == "!relist":
         # Relist an item which has expired - !relist <uid>.
 	if user == -10 or len(broken_string) != 2:
@@ -430,9 +433,9 @@ def process_whisper(nick, msg, mapserv):
 	    if item_info.get('name') != nick:
 		mapserv.sendall(whisper(nick, "That doesn't belong to you!"))
 		return
-	
+
             time_relisted = int(item_info.get('relisted'))
-	
+
 	    if int(item_info.get('relisted')) < 3:
 		sale_tree.get_uid(uid).set('add_time', str(time.time()))
 		sale_tree.get_uid(uid).set('relisted', str(time_relisted + 1))
@@ -443,7 +446,7 @@ def process_whisper(nick, msg, mapserv):
 		return
         else:
 	    mapserv.sendall(whisper(nick, "Syntax incorrect."))
-		
+
     elif broken_string[0] == "!getback":
 	# Trade the player back uid, remove from sale_items if trade successful - !getback <uid>.
 	if user == -10 or len(broken_string) != 2:
@@ -490,7 +493,7 @@ def main():
     logging.basicConfig(filename='logs/activity.log', level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Bot Started.")
 
-    account = sys.argv[1] 
+    account = sys.argv[1]
     password = sys.argv[2]
     character = sys.argv[3]
 
@@ -501,7 +504,7 @@ def main():
     login_packet = PacketOut(0x0064)
     login_packet.write_int32(0)
     login_packet.write_string(account, 24)
-    login_packet.write_string(password, 24)	
+    login_packet.write_string(password, 24)
     login_packet.write_int8(0x03);
     login.sendall(str(login_packet))
 
@@ -517,13 +520,13 @@ def main():
             break
         pb.feed(data)
         for packet in pb:
-            if packet.is_type(SMSG_LOGIN_DATA): # login succeeded	
+            if packet.is_type(SMSG_LOGIN_DATA): # login succeeded
 		packet.skip(2)
-		id1 = packet.read_int32()	
+		id1 = packet.read_int32()
 		accid = packet.read_int32()
 		id2 = packet.read_int32()
 		packet.skip(30)
-		player_node.sex = packet.read_int8()                
+		player_node.sex = packet.read_int8()
                 charip = utils.parse_ip(packet.read_int32())
                 charport = packet.read_int16()
                 login.close()
@@ -584,7 +587,7 @@ def main():
 
 		char_select_packet = PacketOut(CMSG_CHAR_SELECT)
 		char_select_packet.write_int8(int(character))
-		char.sendall(str(char_select_packet))                
+		char.sendall(str(char_select_packet))
 
             elif packet.is_type(SMSG_CHAR_MAP_INFO):
 		player_node.id = packet.read_int32()
@@ -627,7 +630,7 @@ def main():
                 logging.info("Trade Cancelled - Timeout.")
                 trader_state.timer = time.time()
                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
-	
+
         for packet in pb:
             if packet.is_type(SMSG_MAP_LOGIN_SUCCESS): # connected
 		logging.info("Map login success.")
@@ -665,7 +668,7 @@ def main():
 		packet.read_int32()
 		coord_data = packet.read_coord_pair()
 		player_node.x = coord_data[2]
-		player_node.y = coord_data[3]		
+		player_node.y = coord_data[3]
 
             elif packet.is_type(SMSG_PLAYER_STAT_UPDATE_1):
 		stat_type = packet.read_int16()
@@ -680,7 +683,7 @@ def main():
 		    player_node.MaxMP = value
 		elif stat_type == 0x000b:
 		    player_node.LEVEL = value
-		    print "Level changed: %s" % value 
+		    print "Level changed: %s" % value
 		elif stat_type == 0x0018:
 		    print "Weight changed from %s/%s to %s/%s" % (player_node.WEIGHT, player_node.MaxWEIGHT, value, player_node.MaxWEIGHT)
 		    logging.info("Weight changed from %s/%s to %s/%s", player_node.WEIGHT, player_node.MaxWEIGHT, value, player_node.MaxWEIGHT)
@@ -701,18 +704,18 @@ def main():
 		elif stat_type == 0x0016:
 		    player_node.EXP_NEEDED = value
 		    print "Exp Needed: %s" % player_node.EXP_NEEDED
-			
+
             elif packet.is_type(SMSG_BEING_MOVE) or packet.is_type(SMSG_BEING_VISIBLE)\
             or packet.is_type(SMSG_PLAYER_MOVE) or packet.is_type(SMSG_PLAYER_UPDATE_1)\
             or packet.is_type(SMSG_PLAYER_UPDATE_2):
 		being_id = packet.read_int32()
                 packet.skip(8)
-		job = packet.read_int16()		
-		if being_id not in beingManager.container:	
+		job = packet.read_int16()
+		if being_id not in beingManager.container:
 	            if job == 0 and id >= 110000000 and (packet.is_type(SMSG_BEING_MOVE)\
                                                          or packet.is_type(SMSG_BEING_VISIBLE)):
 		        continue
-		    # Add the being to the BeingManager, and request name. 	
+		    # Add the being to the BeingManager, and request name.
 		    beingManager.container[being_id] = Being(being_id, job)
 		    requestName = PacketOut(0x0094)
 		    requestName.write_int32(being_id)
@@ -724,13 +727,13 @@ def main():
 		    packet.read_int32()
 
 		packet.skip(22)
-          
+
 		if (packet.is_type(SMSG_BEING_MOVE) or packet.is_type(SMSG_PLAYER_MOVE)):
 		    coord_data = packet.read_coord_pair()
 		    beingManager.container[being_id].dst_x = coord_data[2]
 		    beingManager.container[being_id].dst_y = coord_data[3]
 		else:
-		    coord_data = packet.read_coord_dir()  
+		    coord_data = packet.read_coord_dir()
 		    beingManager.container[being_id].x = coord_data[0]
                     beingManager.container[being_id].y = coord_data[1]
 		    beingManager.container[being_id].direction = coord_data[2]
@@ -744,14 +747,14 @@ def main():
 	        being_id = packet.read_int32()
 		if being_id in beingManager.container:
 		    del beingManager.container[being_id]
-	
+
 	    elif packet.is_type(SMSG_PLAYER_WARP):
 		player_node.map = packet.read_string(16)
 	        player_node.x = packet.read_int16()
 		player_node.y = packet.read_int16()
 		logging.info("Player warped.")
                 mapserv.sendall(str(PacketOut(CMSG_MAP_LOADED)))
-	
+
 	    elif packet.is_type(SMSG_BEING_ACTION):
 		src_being = packet.read_int32()
 		dst_being = packet.read_int32()
@@ -764,12 +767,12 @@ def main():
 		    if action_type == 0: # Damage
 		        beingManager.container[src_being].action = "attack"
 		        beingManager.container[src_being].target = dst_being
-		        
+
 		    elif action_type == 0x02: # Sit
 		        beingManager.container[src_being].action = "sit"
-				    
+
 		    elif action_type == 0x03: # Stand up
-		        beingManager.container[src_being].action = "stand"	
+		        beingManager.container[src_being].action = "stand"
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY_ADD):
 		item = Item()
@@ -840,7 +843,7 @@ def main():
 		    print "Name: %s, Id: %s, Index: %s, Amount: %s." % \
                     (ItemDB.getItem(player_node.inventory[item].itemId).name, \
                      player_node.inventory[item].itemId, item, player_node.inventory[item].amount)
-		 
+
 	    elif packet.is_type(SMSG_TRADE_REQUEST):
 		print "SMSG_TRADE_REQUEST"
 		name = packet.read_string(24)
@@ -870,7 +873,7 @@ def main():
 			        if trader_state.item.price == 0: # getback
 			            mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
 			            trader_state.complete = 1
-				
+
 		    elif trader_state.money: # money
 			amount = int(user_tree.get_user(trader_state.money).get('money'))
 			mapserv.sendall(trade_add_item(0-inventory_offset, amount))
@@ -910,8 +913,8 @@ def main():
 
 		elif trader_state.money: # money
 		    mapserv.sendall(whisper(trader_state.money, "Don't give me your itenz."))
-		    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))		
-		
+		    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+
 		logging.info("Trade item add: ItemId:%s Amount:%s", item_id, amount)
 		# Note item_id = 0 is money
 
@@ -940,7 +943,7 @@ def main():
 
 		elif response == 1:
 		    logging.info("Trade item add response: Failed - player overweight.")
-		    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))	
+		    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 		    if trader_state.item:
 		        mapserv.sendall(whisper(trader_state.item.player, "You are carrying too much weight. Unload and try again."))
 		elif response == 2:
@@ -956,7 +959,7 @@ def main():
 		    logging.info("Trade OK: Self.")
 		else:
 		    if trader_state.complete:
-		        mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))  
+		        mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
 		    else:
 			mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 			mapserv.sendall(whisper(trader_state.item.player, "Trade Cancelled: Please check the traded items or money."))
@@ -987,7 +990,7 @@ def main():
 			    sale_tree.remove_item_uid(trader_state.item.uid)
 
 		        current_money = int(user_tree.get_user(seller).get("money"))
-		        user_tree.get_user(seller).set("money", str(current_money + trader_state.item.price * trader_state.item.amount))			
+		        user_tree.get_user(seller).set("money", str(current_money + trader_state.item.price * trader_state.item.amount))
 
 			if trader_state.item.price * trader_state.item.amount != 0:
 			    ItemLog.add_item(int(item.get('itemId')), trader_state.item.amount, trader_state.item.price * trader_state.item.amount)
@@ -1003,10 +1006,10 @@ def main():
             else:
 		pass
 	        #print "Unhandled Packet: %s" % hex(packet.get_type())
-    
+
     # On Disconnect/Exit
     shop_broadcaster.stop()
-    mapserv.close()           
+    mapserv.close()
 
 if __name__ == '__main__':
     main()

@@ -97,10 +97,10 @@ class ItemTree:
         self.tree = ElementTree(self.root)
         self.tree.write("data/sale.xml")
 
-def saveData():
+def saveData(commitmessage = "commit"):
     cwd = os.getcwd()
     os.chdir("data")
-    call(["git", "commit","-a", '-m transaction'])
+    call(["git", "commit","-a", '-m "' + commitmessage + '"'])
     os.chdir("..")
 
 

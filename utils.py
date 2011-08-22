@@ -119,8 +119,9 @@ class Broadcast:
         self.shop_broadcast.start()
 
     def stop(self):
-        self.Active = False
-        self.shop_broadcast.join()
+        if self.Active = True
+            self.Active = False
+            self.shop_broadcast.join()
 
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

@@ -805,7 +805,7 @@ def main():
                 # Check the inventory state and the amount of money match the information saved.
                 amount = -1
                 test_node = player_node.inventory
-		for item in test_node:
+                for item in test_node:
                     amount = test_node[item].amount
                     for elem in sale_tree.root:
                         if int(elem.get('itemId')) == test_node[item].itemId \

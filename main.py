@@ -589,14 +589,7 @@ def main():
                     player_node.id = packet.read_int32()
                     player_node.EXP = packet.read_int32()
                     player_node.MONEY = packet.read_int32()
-                    packet.skip(30)
-                    player_node.HP = packet.read_int16()
-                    player_node.MAX_HP = packet.read_int16()
-                    player_node.MP = packet.read_int16()
-                    player_node.MAX_MP = packet.read_int16()
-                    packet.skip(8)
-                    player_node.LEVEL = packet.read_int16()
-                    packet.skip(14)
+                    packet.skip(62)
                     player_node.name = packet.read_string(24)
                     packet.skip(6)
                     slot = packet.read_int8()
@@ -830,7 +823,7 @@ def main():
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
                         trader_state.complete = 1
 
-                elif response == 4:
+                else:
                     logging.info("Trade response: Trade cancelled")
                     trader_state.reset()
 

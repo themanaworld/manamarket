@@ -675,36 +675,10 @@ def main():
                 if nick != "guild":
                     process_whisper(nick, utils.remove_colors(message), mapserv)
 
-            elif packet.is_type(SMSG_PLAYER_CHAT): # server speech
-                msg_len = packet.read_int16() - 2
-                being_id = packet.read_int32()
-                message = packet.read_string(msg_len)
-
-            elif packet.is_type(SMSG_BEING_CHAT): # char speech
-                msg_len = packet.read_int16() - 2
-                being_id = packet.read_int32()
-                message = packet.read_string(msg_len)
-
-            elif packet.is_type(SMSG_WALK_RESPONSE):
-                packet.read_int32()
-                coord_data = packet.read_coord_pair()
-                player_node.x = coord_data[2]
-                player_node.y = coord_data[3]
-
             elif packet.is_type(SMSG_PLAYER_STAT_UPDATE_1):
                 stat_type = packet.read_int16()
                 value = packet.read_int32()
-                if stat_type == 0x0005:
-                    player_node.HP = value
-                elif stat_type == 0x0006:
-                    player_node.MaxHP = value
-                elif stat_type == 0x0007:
-                    player_node.MP = value
-                elif stat_type == 0x0008:
-                    player_node.MaxMP = value
-                elif stat_type == 0x000b:
-                    player_node.LEVEL = value
-                elif stat_type == 0x0018:
+                if stat_type == 0x0018:
                     logging.info("Weight changed from %s/%s to %s/%s", \
                     player_node.WEIGHT, player_node.MaxWEIGHT, value, player_node.MaxWEIGHT)
                     player_node.WEIGHT = value
@@ -715,9 +689,7 @@ def main():
             elif packet.is_type(SMSG_PLAYER_STAT_UPDATE_2):
                 stat_type = packet.read_int16()
                 value = packet.read_int32()
-                if stat_type == 0x0001:
-                    player_node.EXP = value
-                elif stat_type == 0x0014:
+                if stat_type == 0x0014:
                     logging.info("Money Changed from %s, to %s", player_node.MONEY, value)
                     player_node.MONEY = value
 
@@ -736,23 +708,6 @@ def main():
                     requestName = PacketOut(0x0094)
                     requestName.write_int32(being_id)
                     mapserv.sendall(str(requestName))
-
-                packet.skip(8)
-
-                if (packet.is_type(SMSG_BEING_MOVE) or packet.is_type(SMSG_PLAYER_MOVE)):
-                    packet.read_int32()
-
-                packet.skip(22)
-
-                if (packet.is_type(SMSG_BEING_MOVE) or packet.is_type(SMSG_PLAYER_MOVE)):
-                    coord_data = packet.read_coord_pair()
-                    beingManager.container[being_id].dst_x = coord_data[2]
-                    beingManager.container[being_id].dst_y = coord_data[3]
-                else:
-                    coord_data = packet.read_coord_dir()
-                    beingManager.container[being_id].x = coord_data[0]
-                    beingManager.container[being_id].y = coord_data[1]
-                    beingManager.container[being_id].direction = coord_data[2]
 
             elif packet.is_type(SMSG_BEING_NAME_RESPONSE):
                 being_id = packet.read_int32()
@@ -999,7 +954,6 @@ def main():
                 logging.info("Trade Complete.")
             else:
                 pass
-                #print "Unhandled Packet: %s" % hex(packet.get_type())
 
     # On Disconnect/Exit
     shop_broadcaster.stop()

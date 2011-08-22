@@ -64,7 +64,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "No items for sale."))
 
         for elem in sale_tree.root:
-            if time.time() - float(elem.get('add_time')) < 604800: # Check if an items time is up.
+            if time.time() - float(elem.get('add_time')) < config.relist_time: # Check if an items time is up.
                 msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + \
                 elem.get("itemId") + "|" + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
                 mapserv.sendall(whisper(nick, msg))
@@ -74,7 +74,7 @@ def process_whisper(nick, msg, mapserv):
         data = '\302\202B1'
 
         for elem in sale_tree.root:
-            if time.time() - float(elem.get('add_time')) < 604800:
+            if time.time() - float(elem.get('add_time')) < config.relist_time:
                 data += utils.encode_str(int(elem.get("itemId")), 2)
                 data += utils.encode_str(int(elem.get("price")), 4)
                 data += utils.encode_str(int(elem.get("amount")), 3)
@@ -105,7 +105,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "Your have the following items for sale:"))
             for elem in sale_tree.root:
                 if elem.get('name') == nick:
-                    if time.time() - float(elem.get('add_time')) > 604800:
+                    if time.time() - float(elem.get('add_time')) > config.relist_time:
                         msg = "[expired] ["
                     else:
                         msg = "[selling] ["
@@ -184,7 +184,7 @@ def process_whisper(nick, msg, mapserv):
 
         if item.isdigit(): # an id
             for elem in sale_tree.root:
-                if ((time.time() - float(elem.get('add_time'))) < 604800) \
+                if ((time.time() - float(elem.get('add_time'))) < config.relist_time) \
                 and int(elem.get("itemId")) == int(item): # Check if an items time is up.
                     msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
                     + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
@@ -192,7 +192,7 @@ def process_whisper(nick, msg, mapserv):
                     items_found = True
         else: # an item name
             for elem in sale_tree.root:
-                if ((time.time() - float(elem.get('add_time'))) < 604800) \
+                if ((time.time() - float(elem.get('add_time'))) < config.relist_time) \
                 and item.lower() in ItemDB.getItem(int(elem.get("itemId"))).name.lower(): # Check if an items time is up.
                     msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
                     + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"

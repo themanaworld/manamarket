@@ -6,13 +6,6 @@
 
     tradey, a package, which implements an Automated Market Bot for "The Mana World" a 2D MMORPG.
 
-    - Currently permissions are defined as: -1 (blocked), 0 (normal user), 5 (seller), 20 (admin).
-    - An item will only be listed for a period of one week, and can be relisted
-      for 3 weeks.
-    - If a Trade in uncompleted within 5 minutes of a Trade Request, it is cancelled
-      to prevent any disruptions to service.
-    - The Bot supports the manaplus "right click and buy" feature; if an item is listed
-      twice for the same price, the first shown in the list will be bought (i.e. the one added earlier).
 """
 
 import logging
@@ -21,15 +14,13 @@ import sys
 import time
 import string
 
-
-
-from being import *
 try:
     import config
 except:
     print "no config file found. please move config.py.template to config.py and edit to your needs!"
     exit(0);
 
+from being import *
 from net.packet import *
 from net.protocol import *
 from net.packet_out import *
@@ -680,8 +671,7 @@ def main():
                 nick = packet.read_string(24)
                 message = packet.read_raw_string(msg_len)
                 logging.info("Whisper: " + nick + ": " + message)
-                if nick != "guild":
-                    process_whisper(nick, utils.remove_colors(message), mapserv)
+                process_whisper(nick, utils.remove_colors(message), mapserv)
 
             elif packet.is_type(SMSG_PLAYER_STAT_UPDATE_1):
                 stat_type = packet.read_int16()

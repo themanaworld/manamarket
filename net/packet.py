@@ -1,3 +1,6 @@
+
+"""The PacketBuffer class has been adapted from source originally released by gnufrk"""
+
 import struct
 
 packet_lengths = [

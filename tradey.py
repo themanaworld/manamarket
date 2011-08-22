@@ -8,6 +8,7 @@
 """
 import time
 import os
+import xml.dom.minidom
 from subprocess import call
 from xml.etree.ElementTree import *
 
@@ -43,8 +44,10 @@ class UserTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        self.tree = ElementTree(self.root)
-        self.tree.write("data/user.xml")
+        f = open('data/user.xml', 'w')
+        dom = xml.dom.minidom.parseString(tostring(self.root))
+        f.write(str(dom.toprettyxml('    ')))
+        f.close()
 
 class ItemTree:
     def __init__(self):
@@ -94,8 +97,10 @@ class ItemTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        self.tree = ElementTree(self.root)
-        self.tree.write("data/sale.xml")
+        f = open('data/sale.xml', 'w')
+        dom = xml.dom.minidom.parseString(tostring(self.root))
+        f.write(str(dom.toprettyxml('    ')))
+        f.close()
 
 def saveData(commitmessage = "commit"):
     # This assumes the current working directory is the tradey directory.

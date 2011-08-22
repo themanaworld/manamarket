@@ -763,25 +763,6 @@ def main():
                 logging.info("Player warped: %s %s %s", player_node.map, player_node.x, player_node.y)
                 mapserv.sendall(str(PacketOut(CMSG_MAP_LOADED)))
 
-            elif packet.is_type(SMSG_BEING_ACTION):
-                src_being = packet.read_int32()
-                dst_being = packet.read_int32()
-                packet.skip(12)
-                param1 = packet.read_int16()
-                packet.skip(2)
-                action_type = packet.read_int8()
-
-                if src_being in beingManager.container:
-                    if action_type == 0: # Damage
-                        beingManager.container[src_being].action = "attack"
-                        beingManager.container[src_being].target = dst_being
-
-                    elif action_type == 0x02: # Sit
-                        beingManager.container[src_being].action = "sit"
-
-                    elif action_type == 0x03: # Stand up
-                        beingManager.container[src_being].action = "stand"
-
             elif packet.is_type(SMSG_PLAYER_INVENTORY_ADD):
                 item = Item()
                 item.index = packet.read_int16() - inventory_offset
@@ -856,7 +837,6 @@ def main():
                 logging.info("Trade request: " + name)
 
             elif packet.is_type(SMSG_TRADE_RESPONSE):
-                print "SMSG_TRADE_RESPONSE"
                 response = packet.read_int8()
                 time.sleep(0.2)
                 if response == 0:

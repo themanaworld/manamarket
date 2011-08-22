@@ -513,7 +513,7 @@ def main():
 
     login = socket.socket()
     login.connect((config.server, config.port))
-    print("Login connected")
+    logging.info("Login connected")
 
     login_packet = PacketOut(0x0064)
     login_packet.write_int32(0)
@@ -551,7 +551,7 @@ def main():
 
     char = socket.socket()
     char.connect((charip, charport))
-    print("Char connected")
+    logging.info("Char connected")
     char_serv_packet = PacketOut(CMSG_CHAR_SERVER_CONNECT)
     char_serv_packet.write_int32(accid)
     char_serv_packet.write_int32(id1)
@@ -592,14 +592,15 @@ def main():
                     packet.skip(6)
                     slot = packet.read_int8()
                     packet.skip(1)
-                    print "Character information recieved:"
-                    print "Name: %s, Id: %s, EXP: %s, MONEY: %s, HP: %s/%s, MP: %s/%s, LEVEL: %s"\
-                        % (player_node.name, player_node.id, player_node.EXP, player_node.MONEY, player_node.HP, player_node.MAX_HP, player_node.MP, player_node.MAX_MP, player_node.LEVEL)
-                    if slot == int(character):
+                    logging.info("Character information recieved:")
+                    logging.info("Name: %s, Id: %s, EXP: %s, MONEY: %s, HP: %s/%s, MP: %s/%s, LEVEL: %s", \
+                    player_node.name, player_node.id, player_node.EXP, player_node.MONEY, player_node.HP, \
+                    player_node.MAX_HP, player_node.MP, player_node.MAX_MP, player_node.LEVEL)
+                    if slot == character:
                         break
 
                 char_select_packet = PacketOut(CMSG_CHAR_SELECT)
-                char_select_packet.write_int8(int(character))
+                char_select_packet.write_int8(character)
                 char.sendall(str(char_select_packet))
 
             elif packet.is_type(SMSG_CHAR_MAP_INFO):
@@ -617,7 +618,7 @@ def main():
     beingManager.container[player_node.id] = Being(player_node.id, 42)
     mapserv = socket.socket()
     mapserv.connect((mapip, mapport))
-    print("Map connected")
+    logging.info("Map connected")
     mapserv_login_packet = PacketOut(CMSG_MAP_SERVER_CONNECT)
     mapserv_login_packet.write_int32(accid)
     mapserv_login_packet.write_int32(player_node.id)
@@ -652,7 +653,7 @@ def main():
                 player_node.x = coord_data[0]
                 player_node.y = coord_data[1]
                 player_node.direction = coord_data[2]
-                print "Starting Postion: %s %s %s" % (player_node.map, player_node.x, player_node.y)
+                logging.info("Starting Postion: %s %s %s", player_node.map, player_node.x, player_node.y)
                 mapserv.sendall(str(PacketOut(CMSG_MAP_LOADED))) # map loaded
                 # A Thread to send a shop broadcast: also keeps the network active to prevent timeouts.
                 shop_broadcaster.start()
@@ -669,8 +670,6 @@ def main():
                 msg_len = packet.read_int16() - 2
                 being_id = packet.read_int32()
                 message = packet.read_string(msg_len)
-                if "automaticly banned for spam" in message:
-                    time.sleep(3)
 
             elif packet.is_type(SMSG_BEING_CHAT): # char speech
                 msg_len = packet.read_int16() - 2
@@ -765,7 +764,7 @@ def main():
                 player_node.map = packet.read_string(16)
                 player_node.x = packet.read_int16()
                 player_node.y = packet.read_int16()
-                logging.info("Player warped.")
+                logging.info("Player warped: %s %s %s", player_node.map, player_node.x, player_node.y)
                 mapserv.sendall(str(PacketOut(CMSG_MAP_LOADED)))
 
             elif packet.is_type(SMSG_BEING_ACTION):
@@ -852,10 +851,11 @@ def main():
                     item.amount = 1
                     player_node.inventory[item.index] = item
 
+                logging.info("Inventory information received:")
                 for item in player_node.inventory:
-                    print "Name: %s, Id: %s, Index: %s, Amount: %s." % \
-                    (ItemDB.getItem(player_node.inventory[item].itemId).name, \
-                     player_node.inventory[item].itemId, item, player_node.inventory[item].amount)
+                    logging.info("Name: %s, Id: %s, Index: %s, Amount: %s.", \
+                    ItemDB.getItem(player_node.inventory[item].itemId).name, \
+                    player_node.inventory[item].itemId, item, player_node.inventory[item].amount)
 
             elif packet.is_type(SMSG_TRADE_REQUEST):
                 print "SMSG_TRADE_REQUEST"
@@ -941,7 +941,7 @@ def main():
                     logging.info("Trade item add response: Successfully added item.")
                     if trader_state.item:
                         if trader_state.item.get == 0 and index != 0-inventory_offset: # Make sure the correct item is given!
-                            if player_node.inventory[index].itemId != trader_state.item.id and \
+                            if player_node.inventory[index].itemId != trader_state.item.id or \
                                 amount != trader_state.item.amount:
                                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 

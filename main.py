@@ -129,10 +129,6 @@ def process_whisper(nick, msg, mapserv):
 
     elif broken_string[0] == "!help":
         # Sends help information
-        if int(user.get('accesslevel')) < 0:
-            mapserv.sendall(whisper(nick, "You seem to be a bood guy, please don't harm me anymore."))
-            return
-
         if len(broken_string) == 1:
             mapserv.sendall(whisper(nick, "Welcome to ManaMarket!"))
             mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid> "))
@@ -145,7 +141,7 @@ def process_whisper(nick, msg, mapserv):
             if int(user.get('accesslevel')) >= 5:
                 mapserv.sendall(whisper(nick, "Ah, you have sellers access level. How lovely!")) # the first words the ticket seller told me when i was in london for the first time. How lovely!
                 mapserv.sendall(whisper(nick, "Use !add to tell me, I should trade stuff for you:"))
-                mapserv.sendall(whisper(nick, "e.g. !add 10 1000 IronOre would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
+                mapserv.sendall(whisper(nick, "e.g. !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
                 mapserv.sendall(whisper(nick, "Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp"))
             elif int(user.get('accesslevel')) == 20:
                 mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))

@@ -119,7 +119,7 @@ class Broadcast:
         self.shop_broadcast.start()
 
     def stop(self):
-        if self.Active = True
+        if self.Active:
             self.Active = False
             self.shop_broadcast.join()
 

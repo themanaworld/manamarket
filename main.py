@@ -74,9 +74,10 @@ def process_whisper(nick, msg, mapserv):
         data = '\302\202B1'
 
         for elem in sale_tree.root:
-            data += utils.encode_str(int(elem.get("itemId")), 2)
-            data += utils.encode_str(int(elem.get("price")), 4)
-            data += utils.encode_str(int(elem.get("amount")), 3)
+            if time.time() - float(elem.get('add_time')) < 604800:
+                data += utils.encode_str(int(elem.get("itemId")), 2)
+                data += utils.encode_str(int(elem.get("price")), 4)
+                data += utils.encode_str(int(elem.get("amount")), 3)
         mapserv.sendall(whisper(nick, data))
 
     elif broken_string[0] == '!buyitem':

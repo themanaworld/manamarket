@@ -802,6 +802,30 @@ def main():
                     ItemDB.getItem(player_node.inventory[item].itemId).name, \
                     player_node.inventory[item].itemId, item, player_node.inventory[item].amount)
 
+                # Check the inventory state and the amount of money match the information saved.
+                test_node = player_node.inventory
+                for elem in sale_tree.root:
+                    item_found = False
+                    for item in test_node:
+                        if int(elem.get('itemId')) == test_node[item].itemId \
+                        and int(elem.get('amount')) <= test_node[item].amount:
+                            test_node[item].amount -= int(elem.get('amount'))
+                            if test_node[item].amount == 0:
+                                del test_node[item]
+                            item_found = True
+
+                    if not item_found:
+                        logging.info("Server and client inventory out of sync.")
+                        exit(0)
+
+                total_money = 0
+                for user in user_tree:     
+                    total_money += int(user.get('money'))
+
+		 if total_money > player_node.MONEY:
+                      logging.info("Server and client money out of sync.")
+                      exit(0)		
+
             elif packet.is_type(SMSG_TRADE_REQUEST):
                 name = packet.read_string(24)
                 logging.info("Trade request: " + name)

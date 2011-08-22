@@ -102,7 +102,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "Your current access level is 0."))
         elif int(user.get('accesslevel')) > 0:
             mapserv.sendall(whisper(nick, "Your current access level is " + user.get('accesslevel') + "."))
-            mapserv.sendall(whisper(nick, "Your have the following items for sale:"))
+            items_for_sale = False
             for elem in sale_tree.root:
                 if elem.get('name') == nick:
                     if time.time() - float(elem.get('add_time')) > config.relist_time:
@@ -112,7 +112,15 @@ def process_whisper(nick, msg, mapserv):
 
                     msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
                         ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
+
+                    if items_for_sale == False:
+                        mapserv.sendall(whisper(nick, "Your have the following items for sale:"))
+                        items_for_sale = True
+
                     mapserv.sendall(whisper(nick, msg))
+
+            if items_for_sale == False:
+                mapserv.sendall(whisper(nick, "Your have no items for sale."))
 
             money = int(user.get('money'))
             mapserv.sendall(whisper(nick, "You have " + str(money) + "gp to collect."))

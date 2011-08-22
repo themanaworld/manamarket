@@ -696,13 +696,12 @@ def main():
                     player_node.MaxMP = value
                 elif stat_type == 0x000b:
                     player_node.LEVEL = value
-                    print "Level changed: %s" % value
                 elif stat_type == 0x0018:
-                    print "Weight changed from %s/%s to %s/%s" % (player_node.WEIGHT, player_node.MaxWEIGHT, value, player_node.MaxWEIGHT)
-                    logging.info("Weight changed from %s/%s to %s/%s", player_node.WEIGHT, player_node.MaxWEIGHT, value, player_node.MaxWEIGHT)
+                    logging.info("Weight changed from %s/%s to %s/%s", \
+                    player_node.WEIGHT, player_node.MaxWEIGHT, value, player_node.MaxWEIGHT)
                     player_node.WEIGHT = value
                 elif stat_type == 0x0019:
-                    print "Max Weight: %s" % value
+                    logging.info("Max Weight: %s", value)
                     player_node.MaxWEIGHT = value
 
             elif packet.is_type(SMSG_PLAYER_STAT_UPDATE_2):
@@ -712,11 +711,7 @@ def main():
                     player_node.EXP = value
                 elif stat_type == 0x0014:
                     logging.info("Money Changed from %s, to %s", player_node.MONEY, value)
-                    print "Money Changed from %s, to %s" % (player_node.MONEY, value)
                     player_node.MONEY = value
-                elif stat_type == 0x0016:
-                    player_node.EXP_NEEDED = value
-                    print "Exp Needed: %s" % player_node.EXP_NEEDED
 
             elif packet.is_type(SMSG_BEING_MOVE) or packet.is_type(SMSG_BEING_VISIBLE)\
             or packet.is_type(SMSG_PLAYER_MOVE) or packet.is_type(SMSG_PLAYER_UPDATE_1)\
@@ -806,14 +801,12 @@ def main():
                     else:
                         player_node.inventory[item.index] = item
 
-                    print "Picked up: %s, Amount: %s" % (ItemDB.getItem(item.itemId).name, item.amount)
                     logging.info("Picked up: %s, Amount: %s", ItemDB.getItem(item.itemId).name, str(item.amount))
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY_REMOVE):
                 index = packet.read_int16() - inventory_offset
                 amount = packet.read_int16()
 
-                print "Remove item: %s, Amount: %s" % (ItemDB.getItem(player_node.inventory[index].itemId).name, amount)
                 logging.info("Remove item: %s, Amount: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount))
                 if index in player_node.inventory:
                     player_node.inventory[index].amount -= amount
@@ -859,7 +852,6 @@ def main():
                     player_node.inventory[item].itemId, item, player_node.inventory[item].amount)
 
             elif packet.is_type(SMSG_TRADE_REQUEST):
-                print "SMSG_TRADE_REQUEST"
                 name = packet.read_string(24)
                 logging.info("Trade request: " + name)
 
@@ -900,7 +892,6 @@ def main():
                     trader_state.reset()
 
             elif packet.is_type(SMSG_TRADE_ITEM_ADD):
-                print "SMSG_TRADE_ITEM_ADD"
                 amount = packet.read_int32()
                 item_id = packet.read_int16()
                 if trader_state.item and trader_state.money == 0:
@@ -933,7 +924,6 @@ def main():
                 # Note item_id = 0 is money
 
             elif packet.is_type(SMSG_TRADE_ITEM_ADD_RESPONSE):
-                print "SMSG_TRADE_ITEM_ADD_RESPONSE"
                 index = packet.read_int16() - inventory_offset
                 amount = packet.read_int16()
                 response = packet.read_int8()
@@ -948,7 +938,6 @@ def main():
 
                     # If Trade item add successful - Remove the item from the inventory state.
                     if index != 0-inventory_offset: # If it's not money
-                        print "Remove item: %s, Amount: %s" % (ItemDB.getItem(player_node.inventory[index].itemId).name, amount)
                         logging.info("Remove item: %s, Amount: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount))
                         if index in player_node.inventory:
                             player_node.inventory[index].amount -= amount
@@ -967,7 +956,6 @@ def main():
                     mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
             elif packet.is_type(SMSG_TRADE_OK):
-                print "SMSG_TRADE_OK"
                 is_ok = packet.read_int8() # 0 is ok from self, and 1 is ok from other
                 if is_ok == 0:
                     logging.info("Trade OK: Self.")
@@ -983,7 +971,6 @@ def main():
             elif packet.is_type(SMSG_TRADE_CANCEL):
                 trader_state.reset()
                 logging.info("Trade Cancel.")
-                print "SMSG_TRADE_CANCEL"
 
             elif packet.is_type(SMSG_TRADE_COMPLETE):
                 commitMessage=""
@@ -1022,7 +1009,6 @@ def main():
 
                 trader_state.reset()
                 logging.info("Trade Complete.")
-                print "SMSG_TRADE_COMPLETE"
             else:
                 pass
                 #print "Unhandled Packet: %s" % hex(packet.get_type())

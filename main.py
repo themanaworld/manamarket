@@ -609,9 +609,8 @@ def main():
                     slot = packet.read_int8()
                     packet.skip(1)
                     logging.info("Character information recieved:")
-                    logging.info("Name: %s, Id: %s, EXP: %s, MONEY: %s, HP: %s/%s, MP: %s/%s, LEVEL: %s", \
-                    player_node.name, player_node.id, player_node.EXP, player_node.MONEY, player_node.HP, \
-                    player_node.MAX_HP, player_node.MP, player_node.MAX_MP, player_node.LEVEL)
+                    logging.info("Name: %s, Id: %s, EXP: %s, MONEY: %s", \
+                    player_node.name, player_node.id, player_node.EXP, player_node.MONEY)
                     if slot == character:
                         break
 
@@ -813,18 +812,19 @@ def main():
                             if test_node[item].amount == 0:
                                 del test_node[item]
                             item_found = True
+                            break
 
                     if not item_found:
                         logging.info("Server and client inventory out of sync.")
                         exit(0)
 
                 total_money = 0
-                for user in user_tree:     
+                for user in user_tree.root:     
                     total_money += int(user.get('money'))
 
-		 if total_money > player_node.MONEY:
-                      logging.info("Server and client money out of sync.")
-                      exit(0)		
+		if total_money > player_node.MONEY:
+                    logging.info("Server and client money out of sync.")
+                    exit(0)		
 
             elif packet.is_type(SMSG_TRADE_REQUEST):
                 name = packet.read_string(24)

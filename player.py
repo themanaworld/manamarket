@@ -38,5 +38,31 @@ class Player:
                     return item
         return -10 # Not found - bug somewhere!
 
+    def check_inventory(self, user_tree, sale_tree):
+        # Check the inventory state.
+        test_node = self.inventory.copy()
+        for elem in sale_tree.root:
+            item_found = False
+            for item in test_node:
+                if int(elem.get('itemId')) == test_node[item].itemId \
+                and int(elem.get('amount')) <= test_node[item].amount:
+                    test_node[item].amount -= int(elem.get('amount'))
+                    if test_node[item].amount == 0:
+                        del test_node[item]
+                    item_found = True
+                    break
+
+            if not item_found:
+		return "Server and client inventory out of sync."
+
+        total_money = 0
+        for user in user_tree.root:     
+            total_money += int(user.get('money'))
+
+        if total_money > self.MONEY:
+            return "Server and client money out of sync."
+
+        return 0
+
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

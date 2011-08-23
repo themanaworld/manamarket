@@ -58,6 +58,8 @@ class ItemDB:
                 item_struct.name = item.get('name')
                 if item.get('weight'):
                     item_struct.weight = item.get('weight')
+                if item.get('type'):
+                    item_struct.type = item.get('type')
                 item_struct.description = item.get('description')
                 self.item_names[int(item.get('id'))] = item_struct
 

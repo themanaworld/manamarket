@@ -358,6 +358,13 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Item not found, check spelling."))
                 return
 
+            if amount > 1 and 'equip' in ItemDB.getItem(ItemDB.findId(item_name)).type:
+                mapserv.sendall(whisper(nick, "You can only add one piece of equiptment per slot."))
+                return
+            elif price == 0:
+                mapserv.sendall(whisper(nick, "Nothing in life is free."))
+                return
+
             item = Item()
             item.player = nick
             item.get = 1 # 1 = get, 0 = give

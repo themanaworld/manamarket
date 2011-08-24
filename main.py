@@ -396,10 +396,6 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
             return
 
-        if int(user.get("accesslevel")) == -1:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
         if broken_string[1].isdigit() and broken_string[2].isdigit():
             amount = int(broken_string[1])
             uid = int(broken_string[2])

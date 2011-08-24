@@ -44,8 +44,9 @@ def process_whisper(nick, msg, mapserv):
 
     if user != -10:
         if int(user.get("accesslevel")) == -1: # A user who has been blocked for abuse.
-            mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact <administrator>."))
-            return
+            if int(user.get("used_slots")) == 0 and int(user.get("money")) == 0:
+                mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact <administrator>."))
+                return
 
     if msg == "!list":
         # Sends the list of items for sale.
@@ -489,7 +490,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
             return
 
-        if int(user.get("accesslevel")) < 5:
+        if int(user.get("accesslevel")) < 5 and int(user.get("accesslevel")) > 0:
             mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
             return
 

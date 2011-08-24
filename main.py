@@ -268,7 +268,7 @@ def process_whisper(nick, msg, mapserv):
 
             user_tree.get_user(name).set('stalls', str(slot))
             mapserv.sendall(whisper(nick, "Slots changed: "+name+" "+str(slot)))
-            tradey.saveData("User: "+player_name+", Slots changed: "+str(slot))
+            tradey.saveData("User: "+name+", Slots changed: "+str(slot))
             user_tree.save()
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
@@ -289,7 +289,6 @@ def process_whisper(nick, msg, mapserv):
         if (broken_string[1][0] == '-' and broken_string[1][1:].isdigit()) or broken_string[1].isdigit():
             accesslevel = int(broken_string[1])
             name = " ".join(broken_string[2:])
-
             user_info = user_tree.get_user(name)
 
             if user_info == -10:
@@ -300,7 +299,7 @@ def process_whisper(nick, msg, mapserv):
                 user_tree.get_user(name).set('accesslevel', str(accesslevel))
                 mapserv.sendall(whisper(nick, "Access level changed:"+name+ " ("+str(accesslevel)+")."))
                 user_tree.save()
-                tradey.saveData("User: "+player_name+", Set Access Level: "+str(accesslevel))
+                tradey.saveData("User: "+name+", Set Access Level: "+str(accesslevel))
             else:
                 mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
                 return
@@ -736,12 +735,7 @@ def main():
                 item.index = packet.read_int16() - inventory_offset
                 item.amount = packet.read_int16()
                 item.itemId = packet.read_int16()
-                item.identified = packet.read_int8()
-                packet.read_int8()
-                item.refine = packet.read_int8()
-                packet.skip(8)
-                item.equipType = packet.read_int16()
-                item.itemType = packet.read_int8()
+                packet.skip(14)
                 err = packet.read_int8()
 
                 if err == 0:
@@ -757,10 +751,7 @@ def main():
                 amount = packet.read_int16()
 
                 logging.info("Remove item: %s, Amount: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount))
-                if index in player_node.inventory:
-                    player_node.inventory[index].amount -= amount
-                    if player_node.inventory[index].amount == 0:
-                        del player_node.inventory[index]
+                player_node.remove_item(index, amount)
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.
@@ -770,11 +761,9 @@ def main():
                     item = Item()
                     item.index = packet.read_int16() - inventory_offset
                     item.itemId = packet.read_int16()
-                    item.itemType = packet.read_int8()
-                    item.identified = packet.read_int8()
+                    packet.skip(2)
                     item.amount = packet.read_int16()
-                    item.arrow = packet.read_int16()
-                    packet.skip(8) # Cards
+                    packet.skip(10)
                     player_node.inventory[item.index] = item
 
             elif packet.is_type(SMSG_PLAYER_EQUIPMENT):
@@ -784,13 +773,7 @@ def main():
                     item = Item()
                     item.index = packet.read_int16() - inventory_offset
                     item.itemId = packet.read_int16()
-                    item.itemType = packet.read_int8()
-                    item.identified = packet.read_int8()
-                    packet.skip(2)
-                    item.equipType = packet.read_int16()
-                    packet.skip(1)
-                    item.refine = packet.read_int8()
-                    packet.skip(8)
+                    packet.skip(16)
                     item.amount = 1
                     player_node.inventory[item.index] = item
 
@@ -894,10 +877,7 @@ def main():
                     # If Trade item add successful - Remove the item from the inventory state.
                     if index != 0-inventory_offset: # If it's not money
                         logging.info("Remove item: %s, Amount: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount))
-                        if index in player_node.inventory:
-                            player_node.inventory[index].amount -= amount
-                            if player_node.inventory[index].amount == 0:
-                                del player_node.inventory[index]
+                        player_node.remove_item(index, amount)
 
                 elif response == 1:
                     logging.info("Trade item add response: Failed - player overweight.")

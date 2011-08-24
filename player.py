@@ -38,6 +38,12 @@ class Player:
                     return item
         return -10 # Not found - bug somewhere!
 
+    def remove_item(self, index, amount):
+        if index in self.inventory:
+            self.inventory[index].amount -= amount
+            if self.inventory[index].amount == 0:
+                del self.inventory[index]
+
     def check_inventory(self, user_tree, sale_tree):
         # Check the inventory state.
         test_node = self.inventory.copy()

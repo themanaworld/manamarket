@@ -34,11 +34,11 @@ def encode_str(value, size):
     base = 94
     start = 33
     while value:
-        output += struct.pack('<B', value % base + start)
+        output += chr(value % base + start)
         value /= base
 
     while len(output) < size:
-        output += struct.pack('<B', start)
+        output += chr(start)
 
     return output
 

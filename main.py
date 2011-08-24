@@ -45,11 +45,11 @@ def process_whisper(nick, msg, mapserv):
     if user != -10:
         if int(user.get("accesslevel")) == -1: # A user who has been blocked for abuse.
             if int(user.get("used_slots")) == 0 and int(user.get("money")) == 0:
-                mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact <administrator>."))
+                mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact" + config.admin))
                 return
-            allowed_commands = ['!money', '!help', '!getback' ]
+            allowed_commands = ['!money', '!help', '!getback', '!info' ]
             if not broken_string[0] in allowed_commands:
-                mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact <administrator>."))
+                mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact" + config.admin))
                 mapserv.sendall(whisper(nick, "Though, you still can do the following: "+str(allowed_commands))
                 return
 

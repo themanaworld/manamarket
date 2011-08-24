@@ -366,8 +366,8 @@ def process_whisper(nick, msg, mapserv):
             if amount > 1 and 'equip' in ItemDB.getItem(item_id).type:
                 mapserv.sendall(whisper(nick, "You can only add one piece of equiptment per slot."))
                 return
-            elif price == 0:
-                mapserv.sendall(whisper(nick, "Nothing in life is free."))
+            elif price == 0 or price > 50000000:
+                mapserv.sendall(whisper(nick, "Please use a valid price between 1-50000000gp."))
                 return
 
             item = Item()

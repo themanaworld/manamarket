@@ -8,8 +8,19 @@
 """
 import time
 import os
+import xml.dom.minidom
 from subprocess import call
 from xml.etree.ElementTree import *
+
+def clean_xml(parse):
+    data = ''
+    pos_start = 0
+    while parse.find('<', pos_start) != -1:
+        pos_start = parse.find('<', pos_start)
+        pos_end = parse.find('>', pos_start+1)
+        data += parse[pos_start:pos_end+1]
+	pos_start = pos_end
+    return data
 
 class UserTree:
     def __init__(self):
@@ -43,8 +54,10 @@ class UserTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        self.tree = ElementTree(self.root)
-        self.tree.write("data/user.xml")
+        f = open('data/user.xml', 'w')
+        dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root)))
+        f.write(dom.toprettyxml('    '))
+        f.close()
 
 class ItemTree:
     def __init__(self):
@@ -94,15 +107,16 @@ class ItemTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        self.tree = ElementTree(self.root)
-        self.tree.write("data/sale.xml")
+        f = open('data/sale.xml', 'w')
+        dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root)))
+        f.write(dom.toprettyxml('    '))
+        f.close()
 
 def saveData(commitmessage = "commit"):
     # This assumes the current working directory is the tradey directory.
     os.chdir("data")
     call(["git", "commit","-a", '-m "' + commitmessage + '"'])
     os.chdir("..")
-
 
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

@@ -51,6 +51,7 @@ def process_whisper(nick, msg, mapserv):
             if not broken_string[0] in allowed_commands:
                 mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact <administrator>."))
                 mapserv.sendall(whisper(nick, "Though, you still can do the following: "+str(allowed_commands))
+                return
 
     if msg == "!list":
         # Sends the list of items for sale.

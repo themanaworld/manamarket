@@ -9,7 +9,6 @@
 from xml.etree.ElementTree import ElementTree
 from player import Item
 
-import struct
 import time
 import mutex
 import threading

@@ -851,16 +851,13 @@ def main():
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     elif trader_state.item.get == 0: # buy
-                        if amount == trader_state.item.price * trader_state.item.amount and item_id == 0:
+                        if item_id == 0 and amount == trader_state.item.price * trader_state.item.amount:
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
                             trader_state.complete = 1
                         elif item_id == 0 and amount != trader_state.item.price * trader_state.item.amount:
                             trader_state.complete = 0
                         else:
-                            if item_id == 0:
-                                mapserv.sendall(whisper(trader_state.item.player, "Please verify you have the correct amount of money and try again."))
-                            else:
-                                mapserv.sendall(whisper(trader_state.item.player, "Don't give me your itenz."))
+                            mapserv.sendall(whisper(trader_state.item.player, "Don't give me your itenz."))
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                 elif trader_state.money: # money

@@ -843,8 +843,11 @@ def main():
                         if amount == trader_state.item.amount and item_id == trader_state.item.id:
                             trader_state.complete = 1
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                        elif item_id == 0 and amount > 0:
+                            mapserv.sendall(whisper(trader_state.item.player, "Why are you adding money?!?!"))
+                            mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))                            
                         else:
-                            mapserv.sendall(whisper(trader_state.item.player, "Thats not the right item."))
+                            mapserv.sendall(whisper(trader_state.item.player, "That's not the right item."))
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     elif trader_state.item.get == 0: # buy
@@ -954,6 +957,7 @@ def main():
                 pass
 
     # On Disconnect/Exit
+    logging.info("Server disconnect.")
     shop_broadcaster.stop()
     mapserv.close()
 

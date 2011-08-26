@@ -20,14 +20,8 @@ class Player:
         self.x = 0
         self.y = 0
 
-        self.EXP_NEEDED = 0
         self.EXP = 0
         self.MONEY = 0
-        self.LEVEL = 0
-        self.HP = 0
-        self.MaxHP = 0
-        self.MP = 0
-        self.MaxMP = 0
         self.WEIGHT = 0
         self.MaxWEIGHT = 0
 

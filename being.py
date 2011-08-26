@@ -21,9 +21,9 @@ class BeingManager:
     def __init__(self):
         self.container = {}
 
-    def findId(self, name):
+    def findId(self, name, type="player"):
         for i in self.container:
-           if self.container[i].name == name:
+           if self.container[i].name == name and self.container[i].type == type:
                 return i
         return -10
 

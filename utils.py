@@ -48,8 +48,7 @@ class ItemDB:
     def __init__(self):
         print "Loading ItemDB"
         self.item_names = {}
-        self.itemdb_file = ElementTree()
-        self.itemdb_file.parse("data/items.xml")
+        self.itemdb_file = ElementTree(file="data/items.xml")
 
         for item in self.itemdb_file.getroot():
             if item.get('id') > 500:

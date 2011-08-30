@@ -801,6 +801,7 @@ def main():
             elif packet.is_type(SMSG_TRADE_REQUEST):
                 name = packet.read_string(24)
                 logging.info("Trade request: " + name)
+                mapserv.sendall(trade_respond(False))
 
             elif packet.is_type(SMSG_TRADE_RESPONSE):
                 response = packet.read_int8()

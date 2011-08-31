@@ -130,15 +130,15 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "Welcome to ManaMarket!"))
             mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid> "))
             mapserv.sendall(whisper(nick, "For a detailed description of each command, type !help <command> e.g. !help !buy"))
-            mapserv.sendall(whisper(nick, "For example:- to purchase an item shown in the list as:"))
+            mapserv.sendall(whisper(nick, "For example to purchase an item shown in the list as:"))
             mapserv.sendall(whisper(nick, "[selling] [6] 5 [@@640|Iron Ore@@] for 1000gp each"))
             mapserv.sendall(whisper(nick, "you would type /whisper ManaMarket !buy 1 6" ))
             mapserv.sendall(whisper(nick, "This will purchase one of item 6 (Iron Ore)."))
 
             if int(user.get('accesslevel')) >= 5:
                 mapserv.sendall(whisper(nick, "Ah, you have sellers access level. How lovely!")) # the first words the ticket seller told me when i was in london for the first time. How lovely!
-                mapserv.sendall(whisper(nick, "Use !add to tell me, I should trade stuff for you:"))
-                mapserv.sendall(whisper(nick, "e.g. !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
+                mapserv.sendall(whisper(nick, "Use !add to tell me which items I should trade for you:"))
+                mapserv.sendall(whisper(nick, "For example !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
                 mapserv.sendall(whisper(nick, "Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp"))
             elif int(user.get('accesslevel')) == 20:
                 mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))
@@ -364,7 +364,7 @@ def process_whisper(nick, msg, mapserv):
                 return
 
             if amount > 1 and 'equip' in ItemDB.getItem(item_id).type:
-                mapserv.sendall(whisper(nick, "You can only add one piece of equiptment per slot."))
+                mapserv.sendall(whisper(nick, "You can only add one piece of equipment per slot."))
                 return
             elif price == 0 or price > 50000000:
                 mapserv.sendall(whisper(nick, "Please use a valid price between 1-50000000gp."))

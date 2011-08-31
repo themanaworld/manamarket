@@ -223,6 +223,20 @@ def process_whisper(nick, msg, mapserv):
         if not items_found:
             mapserv.sendall(whisper(nick, "Item not found."))
 
+    elif msg == '!tradestate':
+        # Admin command - return trade state.
+        if user == -10:
+            return
+
+        if int(user.get("accesslevel")) != 20:
+            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
+            return
+
+        if not trader_state.Trading.test():
+            mapserv.sendall(whisper(nick, "I'm busy with a trade."))
+        else:
+            mapserv.sendall(whisper(nick, "I'm free."))
+
     elif msg == '!listusers':
         # Admin command - shows a list of all user.
         if user == -10:

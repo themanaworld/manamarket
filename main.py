@@ -140,7 +140,7 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Use !add to tell me which items I should trade for you:"))
                 mapserv.sendall(whisper(nick, "For example !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
                 mapserv.sendall(whisper(nick, "Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp"))
-            elif int(user.get('accesslevel')) == 20:
+            if int(user.get('accesslevel')) == 20:
                 mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))
                 mapserv.sendall(whisper(nick, "You also have access to the following commands: !listusers, !setslots <slots> <name>, !setaccess <access level > <name>, !adduser <access level> <slot> <name>"))
 

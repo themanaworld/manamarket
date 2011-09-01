@@ -232,7 +232,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
             return
 
-        if not trader_state.Trading.test():
+        if trader_state.Trading.test():
             mapserv.sendall(whisper(nick, "I'm busy with a trade."))
         else:
             mapserv.sendall(whisper(nick, "I'm free."))

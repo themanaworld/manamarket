@@ -152,8 +152,6 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "!list - Displays a list of all items for sale."))
             elif broken_string[1] == '!find':
                 mapserv.sendall(whisper(nick, "!find <id> or <Item Name> - Simple search to locate an item."))
-            elif broken_string[1] == '!buy':
-                mapserv.sendall(whisper(nick, "!buy <amount> <uid> - Request the purchase of an item or items."))
             elif broken_string[1] == '!add':
                 mapserv.sendall(whisper(nick, "!add <amount> <price> <Item Name> - Add an item to the sell list (requires that you have an account)."))
             elif broken_string[1] == '!money':
@@ -432,11 +430,12 @@ def process_whisper(nick, msg, mapserv):
             item.uid = uid
             item.amount = amount
             item.price = int(item_info.get("price"))
-            trader_state.item = item
 
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
+
+            trader_state.item = item
             player_id = beingManager.findId(nick)
             if player_id != -10:
                 mapserv.sendall(trade_request(player_id))
@@ -533,11 +532,12 @@ def process_whisper(nick, msg, mapserv):
             item.uid = uid
             item.amount = int(item_info.get("amount"))
             item.price = 0
-            trader_state.item = item
-
+            
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
+
+            trader_state.item = item
             player_id = beingManager.findId(nick)
             if player_id != -10:
                 mapserv.sendall(trade_request(player_id))

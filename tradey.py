@@ -19,7 +19,7 @@ def clean_xml(parse):
         pos_start = parse.find('<', pos_start)
         pos_end = parse.find('>', pos_start+1)
         data += parse[pos_start:pos_end+1]
-	pos_start = pos_end
+        pos_start = pos_end
     return data
 
 class UserTree:

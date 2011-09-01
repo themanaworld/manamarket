@@ -12,7 +12,6 @@ class Item:
 class Player:
     def __init__(self, name):
         self.inventory = {}
-        self.storage = []
         self.name = name
         self.id = 0
         self.sex = 0

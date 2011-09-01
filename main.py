@@ -389,11 +389,12 @@ def process_whisper(nick, msg, mapserv):
             item.id = item_id
             item.amount = amount
             item.price = price
-            trader_state.item = item
 
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
+
+            trader_state.item = item
             player_id = beingManager.findId(nick)
             if player_id != -10:
                 mapserv.sendall(trade_request(player_id))

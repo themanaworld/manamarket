@@ -767,7 +767,7 @@ def main():
                     else:
                         player_node.inventory[item.index] = item
 
-                    logging.info("Picked up: %s, Amount: %s", ItemDB.getItem(item.itemId).name, str(item.amount))
+                    logging.info("Picked up: %s, Amount: %s, Index: %s", ItemDB.getItem(item.itemId).name, str(item.amount), str(item.index))
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY_REMOVE):
                 index = packet.read_int16() - inventory_offset
@@ -900,7 +900,7 @@ def main():
 
                     # If Trade item add successful - Remove the item from the inventory state.
                     if index != 0-inventory_offset: # If it's not money
-                        logging.info("Remove item: %s, Amount: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount))
+                        logging.info("Remove item: %s, Amount: %s, Index: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount),str(index))
                         player_node.remove_item(index, amount)
 
                 elif response == 1:
@@ -913,6 +913,11 @@ def main():
                         mapserv.sendall(whisper(trader_state.item.player, "You have no free slots."))
                     logging.info("Trade item add response: Failed - No free slots.")
                     mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                else:
+                    logging.info("Trade item add response: Failed - unknown reason.")
+                    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                    if trader_state.item:
+                        mapserv.sendall(whisper(trader_state.item.player, "Sorry, a problem has occured."))
 
             elif packet.is_type(SMSG_TRADE_OK):
                 is_ok = packet.read_int8() # 0 is ok from self, and 1 is ok from other

@@ -53,10 +53,10 @@ class Player:
                     break
 
             if not item_found:
-		return "Server and client inventory out of sync."
+                return "Server and client inventory out of sync."
 
         total_money = 0
-        for user in user_tree.root:     
+        for user in user_tree.root:
             total_money += int(user.get('money'))
 
         if total_money > self.MONEY:

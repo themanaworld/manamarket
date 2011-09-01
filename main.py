@@ -773,7 +773,7 @@ def main():
                 index = packet.read_int16() - inventory_offset
                 amount = packet.read_int16()
 
-                logging.info("Remove item: %s, Amount: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount))
+                logging.info("Remove item: %s, Amount: %s, Index: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount), str(index))
                 player_node.remove_item(index, amount)
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):

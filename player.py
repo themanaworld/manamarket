@@ -6,6 +6,9 @@
     This file is part of tradey, a trading bot in the mana world
     see www.themanaworld.org
 """
+
+import copy
+
 class Item:
     pass
 
@@ -39,7 +42,7 @@ class Player:
 
     def check_inventory(self, user_tree, sale_tree):
         # Check the inventory state.
-        test_node = self.inventory.copy()
+        test_node = copy.deepcopy(self.inventory)
         for elem in sale_tree.root:
             item_found = False
             for item in test_node:

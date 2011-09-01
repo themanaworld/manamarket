@@ -260,7 +260,8 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
                 data = ''
 
-        mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
+        if len(data) > 0:
+            mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
 
     elif broken_string[0] == '!setslots':
         # Change the number of slots a user has - !setslots <slots> <name>

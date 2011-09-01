@@ -180,12 +180,12 @@ def process_whisper(nick, msg, mapserv):
         if amount == 0:
             mapserv.sendall(whisper(nick, "You have no money to collect."))
         else:
-            trader_state.money = nick
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
-            player_id = beingManager.findId(nick)
 
+            trader_state.money = nick
+            player_id = beingManager.findId(nick)
             if player_id != -10:
                 mapserv.sendall(trade_request(player_id))
                 trader_state.timer = time.time()

@@ -387,6 +387,9 @@ def process_whisper(nick, msg, mapserv):
             elif price == 0 or price > 50000000:
                 mapserv.sendall(whisper(nick, "Please use a valid price between 1-50000000gp."))
                 return
+            elif amount == 0:
+                mapserv.sendall(whisper(nick, "You can't add 0 of an item."))
+                return
 
             item = Item()
             item.player = nick

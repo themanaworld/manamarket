@@ -142,7 +142,8 @@ def process_whisper(nick, msg, mapserv):
                     mapserv.sendall(whisper(nick, "Use !add to tell me which items I should trade for you:"))
                     mapserv.sendall(whisper(nick, "For example !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
                     mapserv.sendall(whisper(nick, "Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp"))
-                    mapserv.sendall(whisper(nick,"When you just want to know, which items you have given me or how much money I have for you, do !info"))
+                    mapserv.sendall(whisper(nick, "When you just want to know, which items you have given me or how much money I have for you can whisper me !info"))
+                    mapserv.sendall(whisper(nick,"If you want to get back an unsold item, whisper me !getback <uid>"))
 
                 if int(user.get('accesslevel')) == 20:
                     mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))
@@ -335,7 +336,7 @@ def process_whisper(nick, msg, mapserv):
         if user == -10:
             return
 
-        if int(user.get("accesslevel")) != 20:
+        if int(user.get("accesslevel")) < 10:
             mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
             return
 
@@ -380,7 +381,7 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Item not found, check spelling."))
                 return
 
-            if amount > 1 and 'equip' in ItemDB.getItem(item_id).type:
+            if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:
                 mapserv.sendall(whisper(nick, "You can only add one piece of equipment per slot."))
                 return
             elif price == 0 or price > 50000000:
@@ -874,7 +875,7 @@ def main():
                             mapserv.sendall(whisper(trader_state.item.player, "Why are you adding money?!?!"))
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                         else:
-                            mapserv.sendall(whisper(trader_state.item.player, "That's not the right item."))
+                            mapserv.sendall(whisper(trader_state.item.player, "Please check the correct item or quantity has been added."))
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     elif trader_state.item.get == 0: # buy

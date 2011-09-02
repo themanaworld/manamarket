@@ -137,10 +137,13 @@ def process_whisper(nick, msg, mapserv):
 
             if user != -10:
                 if int(user.get('accesslevel')) >= 5:
+                    mapserv.sendall(whisper(nick,"---"))
                     mapserv.sendall(whisper(nick, "Ah, you have sellers access level. How lovely!")) # the first words the ticket seller told me when i was in london for the first time. How lovely!
                     mapserv.sendall(whisper(nick, "Use !add to tell me which items I should trade for you:"))
                     mapserv.sendall(whisper(nick, "For example !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
                     mapserv.sendall(whisper(nick, "Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp"))
+                    mapserv.sendall(whisper(nick,"When you just want to know, which items you have given me or how much money I have for you, do !info"))
+
                 if int(user.get('accesslevel')) == 20:
                     mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))
                     mapserv.sendall(whisper(nick, "You also have access to the following commands: !listusers, !setslots <slots> <name>, !setaccess <access level > <name>, !adduser <access level> <slot> <name>"))
@@ -534,7 +537,7 @@ def process_whisper(nick, msg, mapserv):
             item.uid = uid
             item.amount = int(item_info.get("amount"))
             item.price = 0
-            
+
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
@@ -869,7 +872,7 @@ def main():
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
                         elif item_id == 0 and amount > 0:
                             mapserv.sendall(whisper(trader_state.item.player, "Why are you adding money?!?!"))
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))                            
+                            mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                         else:
                             mapserv.sendall(whisper(trader_state.item.player, "That's not the right item."))
                             mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))

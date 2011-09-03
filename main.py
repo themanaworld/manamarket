@@ -39,6 +39,8 @@ ItemLog = utils.ItemLog()
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
+    if len(msg) == 0:
+        return
     user = user_tree.get_user(nick)
     broken_string = msg.split()
 

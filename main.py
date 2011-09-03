@@ -860,6 +860,7 @@ def main():
                         mapserv.sendall(trade_add_item(0-inventory_offset, amount))
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                        trader_state.complete = 1
 
                 else:
                     logging.info("Trade response: Trade cancelled")
@@ -916,12 +917,6 @@ def main():
                         player_node.remove_item(index, amount)
                     else:
                         logging.info("Trade: Money Added: %s", str(amount))
-                        if trader_state.money:
-                            amount_added = int(user_tree.get_user(trader_state.money).get('money'))
-                            if amount != amount_added:
-                                mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
-                            else:
-                                trader_state.complete = 1
 
                 elif response == 1:
                     logging.info("Trade item add response: Failed - player overweight.")

@@ -14,6 +14,8 @@ import mutex
 import threading
 from net.packet_out import *
 
+allowed_chars = "abcdefghijklmnoprstquvwxyzABCDEFGHIJKLMNOPRSTQUVWXYZ1234567890-_+=!@$%^&*();'<>,.?/~`|"
+
 # Process a recieved ip address.
 def parse_ip(a):
     return "%s.%s.%s.%s" % ((a % 256),((a >> 8) % 256),((a >> 16) % 256),((a >> 24) % 256))

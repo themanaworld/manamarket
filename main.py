@@ -994,6 +994,7 @@ def main():
                 trader_state.reset()
                 logging.info("Trade Complete.")
 
+                isclean = player_node.check_inventory(user_tree, sale_tree)
                 if isclean:
                     logging.info(isclean)
                     shop_broadcaster.stop()

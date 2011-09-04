@@ -817,9 +817,9 @@ def main():
                     ItemDB.getItem(player_node.inventory[item].itemId).name, \
                     player_node.inventory[item].itemId, item, player_node.inventory[item].amount)
 
-                isclean = player_node.check_inventory(user_tree, sale_tree)
-                if isclean:
-                    logging.info(isclean)
+                errorOccured = player_node.check_inventory(user_tree, sale_tree)
+                if errorOccured:
+                    logging.info(errorOccured)
                     shop_broadcaster.stop()
                     exit(0)
                 else:
@@ -994,9 +994,9 @@ def main():
                 trader_state.reset()
                 logging.info("Trade Complete.")
 
-                isclean = player_node.check_inventory(user_tree, sale_tree)
-                if isclean:
-                    logging.info(isclean)
+                errorOccured = player_node.check_inventory(user_tree, sale_tree)
+                if errorOccured:
+                    logging.info(errorOccured)
                     shop_broadcaster.stop()
                     exit(0)
             else:

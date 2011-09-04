@@ -61,7 +61,7 @@ class Player:
         for user in user_tree.root:
             total_money += int(user.get('money'))
 
-        if total_money > self.MONEY:
+        if total_money != self.MONEY:
             return "Server and client money out of sync."
 
         return 0

@@ -820,6 +820,7 @@ def main():
                 isclean = player_node.check_inventory(user_tree, sale_tree)
                 if isclean:
                     logging.info(isclean)
+                    shop_broadcaster.stop()
                     exit(0)
                 else:
                     logging.info("Inventory Check Passed.")
@@ -862,7 +863,6 @@ def main():
                         mapserv.sendall(trade_add_item(0-inventory_offset, amount))
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
-                        trader_state.complete = 1
 
                 else:
                     logging.info("Trade response: Trade cancelled")
@@ -918,7 +918,10 @@ def main():
                         logging.info("Remove item: %s, Amount: %s, Index: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount),str(index))
                         player_node.remove_item(index, amount)
                     else:
-                        logging.info("Trade: Money Added: %s", str(amount))
+                        # The money amount isn't actually sent by the server - odd?!?!?.
+                        if trader_state.money:
+                            logging.info("Trade: Money Added.")
+                            trader_state.complete = 1
 
                 elif response == 1:
                     logging.info("Trade item add response: Failed - player overweight.")
@@ -990,6 +993,11 @@ def main():
 
                 trader_state.reset()
                 logging.info("Trade Complete.")
+
+                if isclean:
+                    logging.info(isclean)
+                    shop_broadcaster.stop()
+                    exit(0)
             else:
                 pass
 

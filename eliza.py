@@ -56,6 +56,7 @@ patternResps = [
     [[[0,'we'],'i','have',[0,'thing']],['how','is', 'your',[0,'thing'],'?']],
     [[[0,'we'],'is','great'],['how','is',[0,'we'],'great','?']],
     [['i','like',[0,'a']],['Interesting','i','appreciate',[0,'a'],'too']],
+    [['sell',[0,'stuff']],['To','sell',[0,'stuff'],'use','my','!add','command.'],
     [['i','said',[0,'we']],['Why','did','you','say',[0,'we']]],
     [[0,'you',[1,'b'],'me'],['What','gave','you','the','impression','I',[1,'b'],'you ?']],
     [['i','feel',[0,'a']],['How','long','have','you','felt',[0,'a'],'?']],

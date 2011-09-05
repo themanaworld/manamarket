@@ -23,6 +23,7 @@ patternResps = [
     [['who','was','your','father'], ['His','name','was','TradeBot, have', 'you' ,'heard' ,'of' ,'him?']],
     [['how','is','business'],['My','back','is','killing','me']],
     [['ty'],["you're",'welcome']],
+    [['help'],['You','can','whisper','me','!help','for','a','list','of','my','commands']],
     [['u','here'],["I'm",'an','AFK','BOT']],
     [['i','love','you'],['I','think','we','should','see','other','people']],
     [['are', 'you','there'],['I','am','always', 'here', ';)']],

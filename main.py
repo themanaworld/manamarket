@@ -27,7 +27,9 @@ from net.packet_out import *
 from player import *
 import tradey
 import utils
+import eliza
 
+chatbot = eliza.Agent([eliza.patternResps,eliza.defReplys])
 shop_broadcaster = utils.Broadcast()
 trader_state = utils.TraderState()
 ItemDB = utils.ItemDB()
@@ -562,7 +564,8 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
                 trader_state.reset()
     else:
-        mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
+        mapserv.sendall(whisper(nick, chatbot.tell(msg.lower())))
+        #mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
 
 def main():
     logging.basicConfig(filename='data/logs/activity.log', level=logging.INFO, format='%(asctime)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')

@@ -18,7 +18,7 @@ patternResps = [
     #[[pattern],[response]]
     #Basics
     [[0,'my','name','is',[1,'Username'],0],['will','you','be','my','friend',[1,'Username']]],
-    [['who','is', 'your','mother'], ['Her' 'name', 'is' ,'AuctionBot','she','is','a','deviant']],
+    [['who','is', 'your','mother'], ['Her','name', 'is' ,'AuctionBot','she','is','a','deviant']],
     [['tell', 'me', 'about', 'your' ,'mum'], ['I','hear','she','has','been','seeing','guild', 'and','they','have','adopted','a','kid','called','4144']],
     [['who','was','your','father'], ['His','name','was','TradeBot, have', 'you' ,'heard' ,'of' ,'him?']],
     [['how','is','business'],['My','back','is','killing','me']],
@@ -44,7 +44,7 @@ patternResps = [
     [['do', 'you', 'trade','things'],['Nope','I', 'only','sell', 'items', 'added','by','other','players']],
     [[[1,'can'],'have',[0,'item_name']],['Please','use', '!list','to', 'see','what', "I'm" ,'selling']], 
     [['you','said',[0,'we']],['I may have said ',[0,'we'],'What about it?']],
-    [['what'],['what','what','?']],
+    [['what'],['what','what?']],
     [['majmun'],['hello','Jat']],
     [[[1, 'subject'], 'loves', [0, 'object']],['Laudable','why','does',[1,'subject'],'love',[0,'object'],'?']],
     [['because'],['Lack of reason is not a reason']],
@@ -138,8 +138,8 @@ class Agent:
             #choose from a default response
             # or just append a question mark on the
             # user's sentence.
-            print '... No pattern Response pair selected.'
-            print '... Choosing a default response.'
+            #print '... No pattern Response pair selected.'
+            #print '... Choosing a default response.'
  
             #Used to be randon using random.choice
             #but then i noticed that the requirements say that

@@ -564,6 +564,7 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
                 trader_state.reset()
     else:
+        msg = filter(lambda x: x in string.letters, msg)
         mapserv.sendall(whisper(nick, chatbot.tell(msg.lower())))
         #mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
 

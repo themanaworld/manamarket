@@ -169,9 +169,9 @@ def process_whisper(nick, msg, mapserv):
             elif broken_string[1] == '!getback':
                 mapserv.sendall(whisper(nick, "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell."))
             elif user != -10:
-                if int(user.get('accesslevel')) == 20 and broken_string[1] == '!listusers':
+                if int(user.get('accesslevel')) >= 10 and broken_string[1] == '!listusers':
                     mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
-                elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!adduser':
+                elif int(user.get('accesslevel')) >= 10 and broken_string[1] == '!adduser':
                     mapserv.sendall(whisper(nick, "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."))
                 elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setslots':
                     mapserv.sendall(whisper(nick, "!setslots <slots> <name> - Sets the number of slots available to a given user."))
@@ -248,7 +248,7 @@ def process_whisper(nick, msg, mapserv):
         if user == -10:
             return
 
-        if int(user.get("accesslevel")) != 20:
+        if int(user.get("accesslevel")) < 10:
             mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
             return
 

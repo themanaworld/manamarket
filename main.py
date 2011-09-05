@@ -435,6 +435,10 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "I do not have that many."))
                 return
 
+            if item_info.get("name") == nick:
+                mapserv.sendall(whisper(nick, "You can not buy your own items. To get back the item whisper me !getback "+broken_string[2]))
+                return
+
             item = Item()
             item.get = 0 # 1 = get, 0 = give
             item.player = nick

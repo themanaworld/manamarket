@@ -168,14 +168,15 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "!info - Displays basic information about your account."))
             elif broken_string[1] == '!getback':
                 mapserv.sendall(whisper(nick, "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell."))
-            elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!listusers':
-                mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
-            elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!adduser':
-                mapserv.sendall(whisper(nick, "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."))
-            elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setslots':
-                mapserv.sendall(whisper(nick, "!setslots <slots> <name> - Sets the number of slots available to a given user."))
-            elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setaccess':
-                mapserv.sendall(whisper(nick, "!setaccess <access level> <name> - Sets access level for the player: -1 is blocked, 5 is seller and 20 is admin" ))
+            elif user != -10:
+                if int(user.get('accesslevel')) == 20 and broken_string[1] == '!listusers':
+                    mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
+                elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!adduser':
+                    mapserv.sendall(whisper(nick, "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."))
+                elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setslots':
+                    mapserv.sendall(whisper(nick, "!setslots <slots> <name> - Sets the number of slots available to a given user."))
+                elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setaccess':
+                    mapserv.sendall(whisper(nick, "!setaccess <access level> <name> - Sets access level for the player: -1 is blocked, 5 is seller and 20 is admin" ))
     elif msg == "!money":
         # Trades any money earned through item sales.
         if user == -10:

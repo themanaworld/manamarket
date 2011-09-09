@@ -109,7 +109,7 @@ class Broadcast:
 
     def send_broadcast(self):
         while self.Active:
-            if (time.time() - self.Timer) > 5 * 60:
+            if (time.time() - self.Timer) > 2 * 60:
                 self.mapserv.sendall(emote(193))
                 self.Timer = time.time()
                 print "shop_broadcast"

@@ -264,7 +264,10 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
                 return
 
-            mapserv.sendall(whisper(nick, "That item belongs to: "+item_info.get("name")))            
+            weight = ItemDB.item_names[int(item_info.get('itemId'))].weight*int(item_info.get("amount"))
+
+            mapserv.sendall(whisper(nick, "That item/s belongs to: "+item_info.get("name")))
+            mapserv.sendall(whisper(nick, "The weight used is: "+str(weight)+"/"+str(player_node.MaxWEIGHT)))           
 
     elif msg == '!listusers':
         # Admin command - shows a list of all user.
@@ -301,7 +304,10 @@ def process_whisper(nick, msg, mapserv):
         if len(data) > 0:
             mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
 
-        mapserv.sendall(whisper(nick,"Number of users:"+str(no_users)+ ", Sale slots used: "+str(total_slots_used)+"/"+str(total_slots_reserved)+ ", Total Money: "+str(total_money)+", Char slots used: "+str(len(player_node.inventory))))
+        mapserv.sendall(whisper(nick,"Number of users:"+str(no_users)+ ", Sale slots used: "+ \
+        str(total_slots_used)+"/"+str(total_slots_reserved)+ ", Total Money: "+str(total_money)+\
+        ", Char slots used: "+str(len(player_node.inventory))+", Weight Used: "+\
+        str(player_node.WEIGHT)+"/"+str(player_node.MaxWEIGHT)))
 
     elif broken_string[0] == '!setslots':
         # Change the number of slots a user has - !setslots <slots> <name>

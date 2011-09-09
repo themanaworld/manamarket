@@ -255,13 +255,21 @@ def process_whisper(nick, msg, mapserv):
             return
 
         data = ''
-
+        total_money = 0
+        total_slots_reserved = 0
+        total_slots_used = 0
+        no_users = 0
+        
         for user in user_tree.root:
+            no_users += 1
             name = user.get('name')
             accesslevel = user.get('accesslevel')
             slots = user.get('stalls')
+            total_slots_reserved += int(slots) 
             used_slots = user.get('used_stalls')
+            total_slots_used += int(used_slots)
             money = user.get('money')
+            total_money += int(money)
             data += name+" ("+accesslevel+") "+used_slots+"/"+slots+" "+money+'gp, '
             # Format ManaMarket (20) 2/5 100000gp,
 
@@ -271,6 +279,8 @@ def process_whisper(nick, msg, mapserv):
 
         if len(data) > 0:
             mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
+
+        mapserv.sendall(whisper(nick,"Number of users:"+str(no_users)+ ", Sale slots used: "+str(total_slots_used)+"/"+str(total_slots_reserved)+ ", Total Money: "+str(total_money)+", Char slots used: "+str(len(player_node.inventory))))
 
     elif broken_string[0] == '!setslots':
         # Change the number of slots a user has - !setslots <slots> <name>
@@ -989,7 +999,7 @@ def main():
                         user_tree.get_user(seller).set("money", str(current_money + trader_state.item.price * trader_state.item.amount))
 
                         if trader_state.item.price * trader_state.item.amount != 0:
-                            ItemLog.add_item(int(item.get('itemId')), trader_state.item.amount, trader_state.item.price * trader_state.item.amount)
+                            ItemLog.add_item(int(item.get('itemId')), trader_state.item.amount, trader_state.item.price * trader_state.item.amount, item.get('name'))
                         commitMessage = "Buy or Getback"
 
                 elif trader_state.money and trader_state.item == 0: # !money

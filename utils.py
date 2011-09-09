@@ -77,9 +77,9 @@ class ItemLog:
     def __init__(self):
         self.log_file = 'data/logs/sale.log'
 
-    def add_item(self, item_id, amount, price):
+    def add_item(self, item_id, amount, price, name):
         file_node = open(self.log_file, 'a')
-        file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+"\n")
+        file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+" "+name+"\n")
         file_node.close()
 
 class TraderState:

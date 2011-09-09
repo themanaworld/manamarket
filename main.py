@@ -245,6 +245,27 @@ def process_whisper(nick, msg, mapserv):
         else:
             mapserv.sendall(whisper(nick, "I'm free."))
 
+    elif broken_string[0] == '!identify':
+        if user == -10:
+            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
+            return
+        elif len(broken_string) != 2:
+            mapserv.sendall(whisper(nick, "Syntax incorrect."))
+            return
+        elif int(user.get("accesslevel")) < 10:
+            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
+            return
+
+        if broken_string[1].isdigit():
+            uid = int(broken_string[1])
+            item_info = sale_tree.get_uid(uid)
+
+            if item_info == -10:
+                mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
+                return
+
+            mapserv.sendall(whisper(nick, "That item belongs to: "+item_info.get("name")))            
+
     elif msg == '!listusers':
         # Admin command - shows a list of all user.
         if user == -10:

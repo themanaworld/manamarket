@@ -195,9 +195,10 @@ gPats = [
     "What feelings do you have when you apologize?"]],
   
   [r'Hello(.*)',
-  [  "Hello... I'm glad you could drop by today.",
-    "Hi there... how are you today?",
-    "Hello, how are you feeling today?"]],
+  [  "Howdy",
+     "Hola"
+     "Hi there... how are you today?",
+     "Hello, how are you feeling today?"]],
   
   [r'I think (.*)',
   [  "Do you doubt %1?",

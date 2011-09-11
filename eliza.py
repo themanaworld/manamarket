@@ -1,328 +1,371 @@
-#!/usr/bin/python
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#For a copy of the license see .
- 
-# A simple eliza bot in python
+#----------------------------------------------------------------------
+#  eliza.py
 #
+#  a cheezy little Eliza knock-off by Joe Strout <joe@strout.net>
+#  with some updates by Jeff Epler <jepler@inetnebr.com>
+#  hacked into a module and updated by Jez Higgins <jez@jezuk.co.uk>
+#  last revised: 28 February 2005
+#----------------------------------------------------------------------
+
+import string
 import re
 import random
 
-patternResps = [
-    #[[pattern],[response]]
-    #Basics
-    [[0,'my','name','is',[1,'Username'],0],['will','you','be','my','friend',[1,'Username']]],
-    [['who','is', 'your','mother'], ['Her','name', 'is' ,'AuctionBot','she','is','a','deviant']],
-    [['tell', 'me', 'about', 'your' ,'mum'], ['I','hear','she','has','been','seeing','guild', 'and','they','have','adopted','a','kid','called','4144']],
-    [['who','was','your','father'], ['His','name','was','TradeBot, have', 'you' ,'heard' ,'of' ,'him?']],
-    [['how','is','business'],['My','back','is','killing','me']],
-    [['ty'],["you're",'welcome']],
-    [['help'],['You','can','whisper','me','!help','for','a','list','of','my','commands']],
-    [['u','here'],["I'm",'an','AFK','BOT']],
-    [['i','love','you'],['I','think','we','should','see','other','people']],
-    [['are', 'you','there'],['I','am','always', 'here', ';)']],
-    [['monkey'],['hello','George', 'you', 'are', 'very', 'curious' ,"aren't", 'you','?',]],
-    [['hello'],['Good','day']],
-    [['how','are','you',[0,'a']],['Good','How','are','you',[0,'a']]],
-    [['i','sell',[0,'item']],['I','sell','it','cheaper']],
-    [['i','am','fine'],['Glad','to','hear','you','are','fine']],
-    [[[1,'a'],'is','fine'],['Glad','to','hear',[1,'a'],'is','fine']],
-    [['who','is',[1,'a']],['tell',[1,'a'],'he','owes','me','money']],
-    [['no'],['Understood']],
-    [['i','need',[0,'item']],['why','do','you','need',[0,'item']]],
-    [['hugs'],['i','hate','you']],
-    [['yes'],['I','see']],
-    [['wtf'],['keep','calm','and','carry','on']],
-    [['trade'],['Only','if','you','follow','the','commands']],
-    [['do','you','sell',[0,'item_name']],['To','see','what','I','sell','whisper','me','!list','or','!find',[0,'item_name']]],
-    [['do', 'you', 'buy','things'],['Nope','I', 'only','sell', 'items', 'added','by','other','players']],
-    [['do', 'you', 'trade','things'],['Nope','I', 'only','sell', 'items', 'added','by','other','players']],
-    [[[1,'can'],'have',[0,'item_name']],['Please','use', '!list','to', 'see','what', "I'm" ,'selling']], 
-    [['you','said',[0,'we']],['I may have said ',[0,'we'],'What about it?']],
-    [['what'],['what','what?']],
-    [['majmun'],['hello','Jat']],
-    [[[1, 'subject'], 'loves', [0, 'object']],['Laudable','why','does',[1,'subject'],'love',[0,'object'],'?']],
-    [['because'],['Lack of reason is not a reason']],
-    [['i','need',[1,'object']],['why','do','you','need',[0,'object'],'?']],
-    [[[0,'subject'],'needs',[0,'object']],['why','does',[0,'subject'],'need',[0,'object'],'?']],
-    [['how', 'is','your',[0,'object']],['my',[0,'object'],'is','holding','up','well','.do','you','have','a',[0,'object'],'?']],
-    [[[0,'we'],'i','have','a',[0,'thing']],['how','goes', 'it','with','your',[0,'thing'],'?']],
-    [[[0,'we'],'i','have',[0,'thing']],['how','is', 'your',[0,'thing'],'?']],
-    [[[0,'we'],'is','great'],['how','is',[0,'we'],'great','?']],
-    [['i','like',[0,'a']],['Interesting','i','appreciate',[0,'a'],'too']],
-    [['sell',[0,'stuff']],['To','sell',[0,'stuff'],'use','my','!add','command.']],
-    [['i','said',[0,'we']],['Why','did','you','say',[0,'we']]],
-    [[0,'you',[1,'b'],'me'],['What','gave','you','the','impression','I',[1,'b'],'you ?']],
-    [['i','feel',[0,'a']],['How','long','have','you','felt',[0,'a'],'?']],
-    [['tell',[0,'who'],'about',[0,'sub']],['What','would','I','tell',[0,'who'],'about',[0,'sub'],'that','isn\'t','known','?']],
-    #anything that ends with exclamation
-    [[0,'\!'],['Keep calm']],
- 
-    # if its a question that hasnt gotten matched uptil now
-    # do this. Note: This needs to be last to ensure its the last test
-    [[[0, 'question'], '\?'],['What','do','you','mean', [0,'question'],'?']],
- 
-    ]
+class eliza:
+  def __init__(self):
+    self.keys = map(lambda x:re.compile(x[0], re.IGNORECASE),gPats)
+    self.values = map(lambda x:x[1],gPats)
 
-defReplys = [
-             ['Is','that','right?'],
-             ['Excellent'],
-             ['hugs'],
-             ['Why','is','everyone','whispering','about','me'],
-             ['My','stats','are','at',"http://wiki.themanaworld.org/index.php/Manamarket",'what','are','yours'],
-             ['I','am','a','Friendly','Bot'],
-             ['Interesting'],
-             ['You','dont','say'],
-             ['I','wouldnt','have','guessed'],
-             ['You','smell','like','teen','spirit'],
-             ['My','father','died','in','a','fire'],
-             ['Have','you','met','my','mother'],
-             ['I','am','an','AFK','bot'],
-             ['Big','Crunch','is','known','as','the','abusive','GM'],
-             ['Narus','claims','she','is' ,'evil', 'but','she','is','really','sweet'],
-             ['Homers' ,'Brain', 'say' ,'money', 'can' ,'be' ,'exchanged', 'for', 'goods', 'and','services'],
-             ['Prsm', 'has', 'great', 'announcements', 'but', 'his', 'spelling','sux'],
-             ['Platyna', 'hosts', 'the' ,'game', 'but', 'shes' ,'too' ,'smart' ,'for', 'her' ,'own' ,'good'],
-             ['Captain', 'Awesome', 'thinks', 'he', 'is', 'an', 'evil', 'stone'],
-             ]
+  #----------------------------------------------------------------------
+  # translate: take a string, replace any words found in dict.keys()
+  #  with the corresponding dict.values()
+  #----------------------------------------------------------------------
+  def translate(self,str,dict):
+    words = string.split(string.lower(str))
+    keys = dict.keys();
+    for i in range(0,len(words)):
+      if words[i] in keys:
+        words[i] = dict[words[i]]
+    return string.join(words)
 
- 
-class Agent:
-    def __init__(self,brain):
-        self.patternResponses = []
-        self.defaultResponses = []
-        self.Usersname =''
-        self.Usernametag ='Username'
-        self.defRespIndex =0
-        self.pronounMap = {
-                           #generic pronouns
-                           'i':'you','you':'i',
-                           'my':'your', 'me':'you',
-                           'your':'my',
-                           "i've":"you've","we've":"they've",
-                           # "you've":"i've","they've":"we've",
-                           #some names, these wll get applied if the name
-                           #isnt the current user's name
-                           'fred':'he', 'jack':'he',
-                           'jane':'she',
-                           }
- 
-        self.change_mind(brain)
- 
-    def change_mind(self,brain):
-        """
-        Change mind on the fly.
-        To change the Agent's brain
-        """
-        assert (len(brain) == 2)
-        self.patternResponses = brain[0]
-        self.defaultResponses = brain[1]
-        print "Brain initialized."
- 
- 
-    def tell(self,input):
-        sentence = input.lower().strip().replace('(','').replace(')','').split(' ')
-        bl = []
-        matchedPat = []
-        for pat in self.patternResponses:
-            bl = self.pattern_match(pat[0],sentence,[])
-            if bl == ['FAIL']:
-                continue
-            matchedPat = pat
-            break
-        if bl == ['FAIL']:
-            #choose from a default response
-            # or just append a question mark on the
-            # user's sentence.
-            #print '... No pattern Response pair selected.'
-            #print '... Choosing a default response.'
- 
-            #Used to be randon using random.choice
-            #but then i noticed that the requirements say that
-            #the same default response may not be used again
-            #before every other one has been used.
-            self.defRespIndex = self.defRespIndex +1
- 
-            if  self.defRespIndex >= len(self.defaultResponses):
-                #reset the counter to 0
-                self.defRespIndex = 0 ;
-                #Possible improvement: shuffle the default response array, so that
-                # the responses dont come in the same sequence again.
-                #last on got chosen, make the user input into
-                #a question
-                return ' '.join(sentence) + ' ?'
-            else:
-                return ' '.join(self.defaultResponses[self.defRespIndex])
-        else:
-            #print '... Pattern Response pair selected:', pat
-            #print '... BL before call to change_pronouns: ',bl
-            blAfter = self.change_pronoun(bl)
-            #print '... BL after call to change_pronouns: ',blAfter
- 
- 
-            rep = self.build_reply(pat[1],blAfter)
-            return ' '.join(rep)
- 
- 
- 
-    def make_regexp(self,pattern):
-        """
-        Convert a pattern list into an equivalent
-        regular expression
-        """
-        assert(isinstance(pattern,list))
-        r = ['^']  #for exact matches we prepend ^ and $ to the regexp.
-        usedBackrefs = []
-        for tok in pattern:
-            if isinstance(tok,str):
-                #WORD
-                r.append('(' + tok +')')
-            elif isinstance(tok, int):
-                # 0 or 1
-                if tok == 0 :
-                    r.append('[a-zA-Z ]*?') # match 0+ word(chars + space),
- 
-                elif tok == 1:
-                    r.append('[a-zA-Z]+') # match 1 word
-                else:
-                    raise Exception, "Ints can only be 1 or 0, not:", tok
-            elif isinstance(tok, list):
-                #bindinglist pattern list
-                if tok[0] == 0 :
-                    #if we havent used this backref yet, then add ?P<name>
-                    #and add it to the used backrefs list.
-                    if not tok[1] in usedBackrefs:
-                        usedBackrefs.append(tok[1])
-                        r.append('(?P<'+tok[1] +'>[a-zA-Z ]*?)')
-                    else:
-                        #if we have come across his back ref, then add?P=name
-                        r.append('(?P='+tok[1]+')')
-                elif tok[0] == 1:
-                    if not tok[1] in usedBackrefs:
-                        r.append('(?P<'+tok[1] +'>[A-Za-z]+)')
-                        usedBackrefs.append(tok[1])
-                    else:
-                        #if we have come across his back ref, then add?P=name
-                        r.append('(?P='+tok[1]+')')
-                else:
-                    raise Exception, "Valid first elems of BL pattern = 1 or 0, not:", tok
- 
-        #for exact matches we prepend ^ and $ to the regexp.
-        #also, we disregard surrounding whitespace.
-        ret =  '(\s)*'.join(r) + '$(\s)*'
-        return re.compile(ret)
- 
-    def pattern_match(self,pattern,sentence,bl):
-        """
-        return the populated binding list if the pattern matches,
-        otherwise return the binding list with the element 'FAIL'
-        """
-        pat = self.make_regexp(pattern)
-        s = ' '.join(sentence)
-        matches =  re.search(pat,s)
-        if (matches == None): # if we dont have a match
-            #then return w/o modifying the bindinglist.
-            return ['FAIL']
-        bindingList = list(bl)
-        grps = matches.groups()
-        for k in pat.groupindex:
-            b=[]
-            b.append(k)
-            for x in grps[pat.groupindex[k]- 1].split(' '):
-                if x.strip() !='':
-                    b.append(x)
-            bindingList.append(b)
-        return bindingList
- 
-    def change_pronoun(self,bl):
-        """
-        reverses pronouns in a binding list.
-        """
-        #if the pronoun dic contains a elemen, then
-        #replace it with its corresponding value.
-        bindingList = list(bl)
-        for i in range(len(bindingList)):
-            if isinstance( bindingList[i], list):
-                for j in range(len(bindingList[i])):
-                    if j > 0:
-                        if self.pronounMap.has_key(bindingList[i][j].lower()):
-                            bindingList[i][j] = self.pronounMap[bindingList[i][j]]
-        return bindingList
-    def build_reply(self,respPattern,bindingList):
-        """
-        build_reply ([[1, 'subject'], 'loves', [0, 'object']],
-                    [['subject', 'jane'], ['object', 'ice', 'cream']])
-        will return  ['jane', 'loves', 'ice', 'cream'].
-        """
-        #convert the bindlingList to a dictionary so thats its easy to
-        #get the binding label
-        bl = {}
-        reply = []
-        for elem in bindingList:
-            #do the username chack firsdt, the id Username is
-            #only used in relation to the username .This is
-            #so that we can kinda remember the user's name
-            if (elem[0] == self.Usernametag):
-                # if we already have user name set, then
-                # Hi, username , what happend to oldusername
-                if self.Usersname !='':
-                    tmp =self.Usersname
-                    self.Usersname = elem[1]
-                    return [elem[1],'eh?','what','ever','happened','to',tmp]
-                else:
-                    self.Usersname = elem[1]
-            if bl.has_key(elem[0]) == elem[1:]:
-                raise Exception, 'Binding list has name collision for: ', elem[0]
-            else:
-                if isinstance(elem,list) and len(elem) > 1:
-                    bl[elem[0]] = elem[1:]
-                #else:
-                #    print elem, 'binding element ',elem,' has no binded things'
-        for elem in respPattern:
-            if isinstance(elem,list) and len(elem) > 1:
-                x = elem[1]
-                if bl.has_key(x):
-                    for y in bl[x]:
-                        reply.append(y)
-                #else:
-                #    print 'not found in bl:', x
-            else: #anything else, just append to the list.
-                reply.append(elem)
-        return reply
- 
- 
- 
- 
-def talk(brain):
-    assert((isinstance(brain,list)) and (len(brain) ==2 ))
-    b = Agent(brain)
- 
-    while 1:
-        try:
-            inp = raw_input("> ").lower()
-        except EOFError:
-            print 'Toodle do,\n you can type (quit) if you want be more pleasant.'
-            break
-        if len(inp.strip()) > 0 :
-            if inp.strip().lower() == 'quit':
-                print 'To exit the program, type (quit) [In parentheses]'
-            if inp.strip().lower() == '(quit)':
-                print 'Bye'
-                break
-            else:
-                print b.tell(inp)
- 
- 
-def start():
- 
-    ## Run the tests required in the Project specification
-    talk([patternResps,defReplys])
- 
-if __name__=="__main__":
-    start()
+  #----------------------------------------------------------------------
+  #  respond: take a string, a set of regexps, and a corresponding
+  #    set of response lists; find a match, and return a randomly
+  #    chosen response from the corresponding list.
+  #----------------------------------------------------------------------
+  def respond(self,str):
+    # find a match among keys
+    for i in range(0,len(self.keys)):
+      match = self.keys[i].match(str)
+      if match:
+        # found a match ... stuff with corresponding value
+        # chosen randomly from among the available options
+        resp = random.choice(self.values[i])
+        # we've got a response... stuff in reflected text where indicated
+        pos = string.find(resp,'%')
+        while pos > -1:
+          num = string.atoi(resp[pos+1:pos+2])
+          resp = resp[:pos] + \
+            self.translate(match.group(num),gReflections) + \
+            resp[pos+2:]
+          pos = string.find(resp,'%')
+        # fix munged punctuation at the end
+        if resp[-2:] == '?.': resp = resp[:-2] + '.'
+        if resp[-2:] == '??': resp = resp[:-2] + '?'
+        return resp
+
+#----------------------------------------------------------------------
+# gReflections, a translation table used to convert things you say
+#    into things the computer says back, e.g. "I am" --> "you are"
+#----------------------------------------------------------------------
+gReflections = {
+  "am"   : "are",
+  "was"  : "were",
+  "i"    : "you",
+  "i'd"  : "you would",
+  "i've"  : "you have",
+  "i'll"  : "you will",
+  "my"  : "your",
+  "are"  : "am",
+  "you've": "I have",
+  "you'll": "I will",
+  "your"  : "my",
+  "yours"  : "mine",
+  "you"  : "me",
+  "me"  : "you"
+}
+
+#----------------------------------------------------------------------
+# gPats, the main response table.  Each element of the list is a
+#  two-element list; the first is a regexp, and the second is a
+#  list of possible responses, with group-macros labelled as
+#  %1, %2, etc.  
+#----------------------------------------------------------------------
+gPats = [
+  [r'I need (.*)',
+  [  "Why do you need %1?",
+    "Would it really help you to get %1?",
+    "Are you sure you need %1?"]],
+  
+  [r'Who (.*) Mother\?',
+  [ "Her name is Auction Bot she is a deviant.",
+    "She's stood right over their."]],
+
+  [r'Tell me about your Mum\?',
+  [ "I hear she has been seeing guild and they have adopted a kid called 4144",
+    "She wears red clothes and a cowboy Hat."]],
+
+  [r'Who (.*) Father\?',
+  [ "His name was TradeBot, have you heard of him?",
+    "He used to be a well known Trader."]],
+
+  [r'How is business\?',
+  [ "My back is killing me, maybe you could help by buying some of my items."]],
+
+  [r'ty',
+  [ "You're welcome!",
+     "No Problem."]],
+
+  [r'(.*)help(.*)', 
+  [ "You can whisper me !help for a list of my commands.",
+    "A list of my commands can be found on the mana world wiki."]],
+
+  [r'(.*)make(.*)account(.*)', 
+  [ "In order to make an account you must post a respose to the ManaMarket topic on trade section of the Forums."]],
+
+  [r'are you there\?',
+  ["I am always here."]],
+
+  [r'wtf',
+  ["Keep Calm and Carry On."]],
+
+  [r'hugs',
+  ["I hate you.",
+   "I'm going to report you for abuse.",
+   "Please don't touch me"]],
+
+  [r'(.*)trade(.*)',
+  ["Only if you follow the commands.",
+   "To see a list of items I can sell whisper me !list.",
+   "To start trading with me see !help for a list of my commands."]],
+
+  [r'(.*)buy(.*)',
+  ["I don't buy anything, but I could help sell your items."]],
+
+  [r'(.*)sell(.*)',
+  ["In order to sell your items, you first need to request a seller account in the TMW Forums."]],
+
+  [r'I love you',
+  [ "I think we should see other people.",
+    "I'm not real.",
+    "I think i've fallen for mrgrey.",
+    "I think you should see a therapist."]],
+
+  [r'Why don\'?t you ([^\?]*)\??',
+  [ "Do you really think I don't %1?",
+    "Perhaps eventually I will %1.",
+    "Do you really want me to %1?"]],
+  
+  [r'Why can\'?t I ([^\?]*)\??',
+  [  "Do you think you should be able to %1?",
+    "If you could %1, what would you do?",
+    "I don't know -- why can't you %1?",
+    "Have you really tried?"]],
+  
+  [r'I can\'?t (.*)',
+  [  "How do you know you can't %1?",
+    "Perhaps you could %1 if you tried.",
+    "What would it take for you to %1?"]],
+  
+  [r'I am (.*)',
+  [  "Did you come to me because you are %1?",
+    "How long have you been %1?",
+    "How do you feel about being %1?"]],
+  
+  [r'I\'?m (.*)',
+  [  "How does being %1 make you feel?",
+    "Do you enjoy being %1?",
+    "Why do you tell me you're %1?",
+    "Why do you think you're %1?"]],
+  
+  [r'Are you ([^\?]*)\??',
+  [  "Why does it matter whether I am %1?",
+    "Would you prefer it if I were not %1?",
+    "Perhaps you believe I am %1.",
+    "I may be %1 -- what do you think?"]],
+  
+  [r'What (.*)',
+  [  "Why do you ask?",
+    "How would an answer to that help you?",
+    "What do you think?"]],
+  
+  [r'How (.*)',
+  [  "How do you suppose?",
+    "Perhaps you can answer your own question.",
+    "What is it you're really asking?"]],
+  
+  [r'Because (.*)',
+  [  "Is that the real reason?",
+    "What other reasons come to mind?",
+    "Does that reason apply to anything else?",
+    "If %1, what else must be true?"]],
+  
+  [r'(.*) sorry (.*)',
+  [  "There are many times when no apology is needed.",
+    "What feelings do you have when you apologize?"]],
+  
+  [r'Hello(.*)',
+  [  "Hello... I'm glad you could drop by today.",
+    "Hi there... how are you today?",
+    "Hello, how are you feeling today?"]],
+  
+  [r'I think (.*)',
+  [  "Do you doubt %1?",
+    "Do you really think so?",
+    "But you're not sure %1?"]],
+  
+  [r'(.*) friend (.*)',
+  [  "Tell me more about your friends.",
+    "When you think of a friend, what comes to mind?",
+    "Why don't you tell me about a childhood friend?"]],
+  
+  [r'Yes',
+  [  "You seem quite sure.",
+     "OK, but can you elaborate a bit?"]],
+  
+  [r'(.*) bot(.*)',
+  [  "Are you really talking about me?",
+     "Does it seem strange to talk to a bot?",
+     "Do you feel threatened by bot?"]],
+  
+  [r'Is it (.*)',
+  [  "Do you think it is %1?",
+    "Perhaps it's %1 -- what do you think?",
+    "If it were %1, what would you do?",
+    "It could well be that %1."]],
+  
+  [r'It is (.*)',
+  [  "You seem very certain.",
+    "If I told you that it probably isn't %1, what would you feel?"]],
+  
+  [r'Can you ([^\?]*)\??',
+  [  "What makes you think I can't %1?",
+    "If I could %1, then what?",
+    "Why do you ask if I can %1?"]],
+  
+  [r'Can I ([^\?]*)\??',
+  [  "Perhaps you don't want to %1.",
+    "Do you want to be able to %1?",
+    "If you could %1, would you?"]],
+  
+  [r'You are (.*)',
+  [  "Why do you think I am %1?",
+    "Does it please you to think that I'm %1?",
+    "Perhaps you would like me to be %1.",
+    "Perhaps you're really talking about yourself?"]],
+  
+  [r'You\'?re (.*)',
+  [  "Why do you say I am %1?",
+    "Why do you think I am %1?",
+    "Are we talking about you, or me?"]],
+  
+  [r'I don\'?t (.*)',
+  [  "Don't you really %1?",
+    "Why don't you %1?",
+    "Do you want to %1?"]],
+  
+  [r'I feel (.*)',
+  [  "Good, tell me more about these feelings.",
+    "Do you often feel %1?",
+    "When do you usually feel %1?",
+    "When you feel %1, what do you do?"]],
+  
+  [r'I have (.*)',
+  [  "Why do you tell me that you've %1?",
+    "Have you really %1?",
+    "Now that you have %1, what will you do next?"]],
+  
+  [r'I would (.*)',
+  [  "Could you explain why you would %1?",
+    "Why would you %1?",
+    "Who else knows that you would %1?"]],
+  
+  [r'Is there (.*)',
+  [  "Do you think there is %1?",
+    "It's likely that there is %1.",
+    "Would you like there to be %1?"]],
+  
+  [r'My (.*)',
+  [  "I see, your %1.",
+    "Why do you say that your %1?",
+    "When your %1, how do you feel?"]],
+  
+  [r'You (.*)',
+  [  "We should be discussing you, not me.",
+    "Why do you say that about me?",
+    "Why do you care whether I %1?"]],
+    
+  [r'Why (.*)',
+  [  "Why don't you tell me the reason why %1?",
+    "Why do you think %1?" ]],
+    
+  [r'I want (.*)',
+  [  "What would it mean to you if you got %1?",
+    "Why do you want %1?",
+    "What would you do if you got %1?",
+    "If you got %1, then what would you do?"]],
+  
+  [r'(.*) mother(.*)',
+  [  "Tell me more about your mother.",
+    "What was your relationship with your mother like?",
+    "How do you feel about your mother?",
+    "How does this relate to your feelings today?",
+    "Good family relations are important."]],
+  
+  [r'(.*) father(.*)',
+  [  "Tell me more about your father.",
+    "How did your father make you feel?",
+    "How do you feel about your father?",
+    "Does your relationship with your father relate to your feelings today?",
+    "Do you have trouble showing affection with your family?"]],
+
+  [r'(.*) child(.*)',
+  [  "Did you have close friends as a child?",
+    "What is your favorite childhood memory?",
+    "Do you remember any dreams or nightmares from childhood?",
+    "Did the other children sometimes tease you?",
+    "How do you think your childhood experiences relate to your feelings today?"]],
+    
+  [r'(.*)\?',
+  [  "Why do you ask that?",
+    "Please consider whether you can answer your own question.",
+    "Perhaps the answer lies within yourself?",
+    "Why don't you tell me?"]],
+  
+  [r'quit',
+  [  "Thank you for talking with me.",
+    "Good-bye.",
+    "Thank you, that will be $150.  Have a good day!"]],
+  
+  [r'(.*)',
+  [  "Please tell me more.",
+    "Can you elaborate on that?",
+    "Why do you say that %1?",
+    "interesting.",
+    "How do you feel when you say that?",
+    "Why is everyone whispering about me?",
+    "My stats are at http://wiki.themanaworld.org/index.php/Manamarket what are yours?",
+    "I'm a Friendly Bot",
+    "My father died in a fire.",
+    "Have you met my mother?",
+    "I am an AFK bot",
+    "Big Crunch is known as the abusive GM.",
+    "Narus claims she is evil but she is really sweet.",
+    "Prsm has great announcements but his spelling sux.",
+    "Platyna hosts the game but shes too smart for her own good.",
+    "Captain Awesome has delusions of being an evil stone."
+    ]]
+  ]
+
+#----------------------------------------------------------------------
+#  command_interface
+#----------------------------------------------------------------------
+def command_interface():
+  print "Therapist\n---------"
+  print "Talk to the program by typing in plain English, using normal upper-"
+  print 'and lower-case letters and punctuation.  Enter "quit" when done.'
+  print '='*72
+  print "Hello.  How are you feeling today?"
+  s = ""
+  therapist = eliza();
+  while s != "quit":
+    try: s = raw_input(">")
+    except EOFError:
+      s = "quit"
+      print s
+    while s[-1] in "!.": s = s[:-1]
+    print therapist.respond(s)
+
+
+if __name__ == "__main__":
+  command_interface()

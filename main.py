@@ -29,7 +29,7 @@ import tradey
 import utils
 import eliza
 
-chatbot = eliza.Agent([eliza.patternResps,eliza.defReplys])
+chatbot = eliza.eliza()
 shop_broadcaster = utils.Broadcast()
 trader_state = utils.TraderState()
 ItemDB = utils.ItemDB()
@@ -601,8 +601,9 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
                 trader_state.reset()
     else:
-        msg = filter(lambda x: x in string.letters, msg)
-        mapserv.sendall(whisper(nick, chatbot.tell(msg.lower())))
+        response = chatbot.respond(msg)
+        logging.info("Bot Response: "+response)
+        mapserv.sendall(whisper(nick, response))
         #mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
 
 def main():
@@ -734,7 +735,7 @@ def main():
 
         # For unfinished trades - one way to distrupt service would be leaving a trade active.
         if trader_state.Trading.test():
-            if time.time() - trader_state.timer > 5*60:
+            if time.time() - trader_state.timer > 2*60:
                 logging.info("Trade Cancelled - Timeout.")
                 trader_state.timer = time.time()
                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))

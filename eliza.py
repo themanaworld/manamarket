@@ -196,7 +196,7 @@ gPats = [
   
   [r'Hello(.*)',
   [  "Howdy",
-     "Hola"
+     "Hola",
      "Hi there... how are you today?",
      "Hello, how are you feeling today?"]],
   

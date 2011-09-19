@@ -121,7 +121,7 @@ def process_whisper(nick, msg, mapserv):
                     mapserv.sendall(whisper(nick, msg))
 
             if items_for_sale == False:
-                mapserv.sendall(whisper(nick, "Your have no items for sale."))
+                mapserv.sendall(whisper(nick, "You have no items for sale."))
 
             money = int(user.get('money'))
             mapserv.sendall(whisper(nick, "You have " + str(money) + "gp to collect."))

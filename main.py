@@ -995,7 +995,8 @@ def main():
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
                     else:
                         mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
-                        mapserv.sendall(whisper(trader_state.item.player, "Trade Cancelled: Please check the traded items or money."))
+                        if trader_state.item:
+                            mapserv.sendall(whisper(trader_state.item.player, "Trade Cancelled: Please check the traded items or money."))
 
                     logging.info("Trade Ok: Partner.")
 

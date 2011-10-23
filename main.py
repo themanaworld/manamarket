@@ -1,11 +1,26 @@
 #!/usr/bin/python
 """
+Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
+Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
 
-    Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
-    Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
+This file is part of tradey, a trading bot in The Mana World
+see www.themanaworld.org
 
-    tradey, a package, which implements an Automated Market Bot for "The Mana World" a 2D MMORPG.
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your option)
+any later version.
 
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
+
+You should have received a copy of the GNU General Public License along with
+this program. If not, see <http://www.gnu.org/licenses/>.
+
+Additionally to the GPL, you are *strongly* encouraged to share any modifications
+you do on these sources.
 """
 
 import logging
@@ -267,7 +282,7 @@ def process_whisper(nick, msg, mapserv):
             weight = ItemDB.item_names[int(item_info.get('itemId'))].weight*int(item_info.get("amount"))
 
             mapserv.sendall(whisper(nick, "That item/s belongs to: "+item_info.get("name")))
-            mapserv.sendall(whisper(nick, "The weight used is: "+str(weight)+"/"+str(player_node.MaxWEIGHT)))           
+            mapserv.sendall(whisper(nick, "The weight used is: "+str(weight)+"/"+str(player_node.MaxWEIGHT)))
 
     elif msg == '!listusers':
         # Admin command - shows a list of all user.
@@ -283,13 +298,13 @@ def process_whisper(nick, msg, mapserv):
         total_slots_reserved = 0
         total_slots_used = 0
         no_users = 0
-        
+
         for user in user_tree.root:
             no_users += 1
             name = user.get('name')
             accesslevel = user.get('accesslevel')
             slots = user.get('stalls')
-            total_slots_reserved += int(slots) 
+            total_slots_reserved += int(slots)
             used_slots = user.get('used_stalls')
             total_slots_used += int(used_slots)
             money = user.get('money')

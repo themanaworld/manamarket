@@ -1,3 +1,4 @@
+# This file has been adapted from source originally released by gnufrk
 SMSG_LOGIN_DATA = 0x0069
 SMSG_CHAR_LOGIN = 0x006b
 SMSG_CHAR_MAP_INFO = 0x0071

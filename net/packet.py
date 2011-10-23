@@ -1,5 +1,5 @@
 
-"""The PacketBuffer class has been adapted from source originally released by gnufrk"""
+# The PacketBuffer class has been adapted from source originally released by gnufrk
 
 import struct
 

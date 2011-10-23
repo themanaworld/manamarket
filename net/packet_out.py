@@ -1,3 +1,4 @@
+# This file has been adapted from source originally released by gnufrk
 from packet import *
 from protocol import *
 

@@ -276,7 +276,7 @@ def process_whisper(nick, msg, mapserv):
             item_info = sale_tree.get_uid(uid)
 
             if item_info == -10:
-                mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
+                mapserv.sendall(whisper(nick, "Item not found. Please check the uid number and try again."))
                 return
 
             weight = ItemDB.item_names[int(item_info.get('itemId'))].weight*int(item_info.get("amount"))

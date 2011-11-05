@@ -755,6 +755,17 @@ def main():
                 trader_state.timer = time.time()
                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
+                # If a player has logged off/left the map. 
+                nick = ''
+                if trader_state.item:
+                        nick = trader_state.item.player
+                elif trader_state.money:
+                        nick = trader_state.money
+
+                player_id = beingManager.findId(nick)
+                if player_id == -10:
+                    trader_state.reset()
+
         for packet in pb:
             if packet.is_type(SMSG_MAP_LOGIN_SUCCESS): # connected
                 logging.info("Map login success.")

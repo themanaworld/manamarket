@@ -58,6 +58,11 @@ def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
     if len(msg) == 0:
         return
+
+    # Infinite chat loop anyone?
+    if nick == "guild":
+        return
+
     user = user_tree.get_user(nick)
     broken_string = msg.split()
 
@@ -755,17 +760,6 @@ def main():
                 trader_state.timer = time.time()
                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
-                # If a player has logged off/left the map. 
-                nick = ''
-                if trader_state.item:
-                        nick = trader_state.item.player
-                elif trader_state.money:
-                        nick = trader_state.money
-
-                player_id = beingManager.findId(nick)
-                if player_id == -10:
-                    trader_state.reset()
-
         for packet in pb:
             if packet.is_type(SMSG_MAP_LOGIN_SUCCESS): # connected
                 logging.info("Map login success.")
@@ -783,7 +777,9 @@ def main():
                 msg_len = packet.read_int16() - 26
                 nick = packet.read_string(24)
                 message = packet.read_raw_string(msg_len)
-                logging.info("Whisper: " + nick + ": " + message)
+                # Clean up the logs.
+                if nick != 'AuctionBot':
+                    logging.info("Whisper: " + nick + ": " + message)
                 process_whisper(nick, utils.remove_colors(message), mapserv)
 
             elif packet.is_type(SMSG_PLAYER_STAT_UPDATE_1):

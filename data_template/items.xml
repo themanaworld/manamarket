@@ -66,6 +66,9 @@
     <item id="-18" type="hairsprite" name="Fizzy">
 	<sprite>hairstyles/hairstyle18.xml</sprite>
     </item>
+    <item id="-19" type="hairsprite" name="Long and Clipped">
+        <sprite>hairstyles/hairstyle19.xml</sprite>
+    </item>
 
     <!-- Treating the base sprite as equipment too will be useful when we
          implement other playable races -->
@@ -88,7 +91,7 @@
     <item id="31"
         weapon_type="10">
         <sprite>weapon-bow.xml</sprite>
-        <sound event="swing">weapons/bows/bow_shoot_1.ogg</sound>
+        <!-- <sound event="strike">weapons/bows/bow_shoot_1.ogg</sound> -->
     </item>
     <item id="32"
         weapon_type="11">
@@ -343,7 +346,7 @@
         weight="600"
         missile-particle="graphics/particles/arrow.particle.xml">
         <sprite>weapon-bow.xml</sprite>
-        <sound event="swing">weapons/bows/bow_shoot_1.ogg</sound>
+        <!-- <sound event="strike">weapons/bows/bow_shoot_1.ogg</sound> -->
     </item>
     <item id="531"
         image="equipment/hands/minergloves.png"
@@ -469,7 +472,7 @@
         weight="1200"
         missile-particle="graphics/particles/arrow.particle.xml">
         <sprite>weapon-bow.xml</sprite>
-        <sound event="swing">weapons/bows/bow_shoot_1.ogg</sound>
+        <!-- <sound event="strike">weapons/bows/bow_shoot_1.ogg</sound> -->
     </item>
     <item id="546"
         image="equipment/chest/desertshirt.png"
@@ -2400,6 +2403,7 @@
         type="equip-torso"
         defense="15"
         weight="35">
+        <sprite gender="male">equipment/chest/valentine-dress.xml|#bf0e08</sprite>
         <sprite gender="female">equipment/chest/valentine-dress.xml|#bf0e08</sprite>
     </item>
     <item id="784"
@@ -2452,7 +2456,7 @@
         hp="100"
         weight="5"/>
     <item id="791"
-        image="equipment/chest/tanktop.png|W:#412300,c9866b,8d4900;#ffff00"
+        image="equipment/chest/tanktop.png|W:#412300,c9866b,8d4900"
         name="Yeti Skin Shirt"
         description="A shirt made of hardened yeti skin."
         effect="M. Attack -12"
@@ -2610,70 +2614,70 @@
         name="White Hitchhiker's Towel"
         description="An inconspicuous white towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="810"
         image="use/others/warp-towel.png|W:#580000,a40000,c02020,ff6060"
         name="Red Hitchhiker's Towel"
         description="An inconspicuous red towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="811"
         image="use/others/warp-towel.png|W:#1f9c1f,89d689"
         name="Green Hitchhiker's Towel"
         description="An inconspicuous green towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="812"
         image="use/others/warp-towel.png|W:#4b4bbd,888af4"
         name="Blue Hitchhiker's Towel"
         description="An inconspicuous blue towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="813"
         image="use/others/warp-towel.png|W:#ccb534,f1ea8e,ffffaa"
         name="Yellow Hitchhiker's Towel"
         description="An inconspicuous yellow towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="814"
         image="use/others/warp-towel.png|W:#530a7c,b362e1,ca87ef"
         name="Purple Hitchhiker's Towel"
         description="An inconspicuous purple towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="815"
         image="use/others/warp-towel.png|W:#80280f,b04810,ef681f,ffb830"
         name="Orange Hitchhiker's Towel"
         description="An inconspicuous orange towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="816"
         image="use/others/warp-towel.png|W:#56002f,930050,fe70bd,feb7de,ffffff"
         name="Pink Hitchhiker's Towel"
         description="An inconspicuous pink towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="817"
         image="use/others/warp-towel.png|W:#4ee2ec"
         name="Teal Hitchhiker's Towel"
         description="An inconspicuous teal towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="818"
         image="use/others/warp-towel.png|W:#41a317"
         name="Lime Hitchhiker's Towel"
         description="An inconspicuous lime towel."
         effect="A strange way of travelling."
-        type="generic"
+        type="usable"
         weight="30"/>
     <item id="819"
         image="generic/gempowder.png|W:#5e7480,f1ffff,ffffff"
@@ -2772,14 +2776,14 @@
         luck="4"
         weight="10"/>
     <item id="833"
-        image="equipment/charms/broken-fourleaf-amulet.png"
+        image="generic/broken-fourleaf-amulet.png"
         name="Broken Four-Leaf Amulet"
         description="A broken four-leaf clover amulet."
         type="generic"
         weight="10"/>
     <item id="834"
-        image="generic/doll.png"
-        name="Doll"
+        image="generic/brokendoll.png"
+        name="Broken Doll"
         description="An ancient doll taken from a fallen Fey Element that used it as a lure for its young victims."
         type="generic"
         weight="15"/>
@@ -2795,9 +2799,205 @@
         description="The orifice secretions of a grub."
         type="generic"
         weight="2"/>
-
     <!-- ID 837 RESERVED - "Witch Root" -->
-
+    <item id="838"
+        image="use/food/lollipop2.png|M:#c21439,e81844,ffffff"
+        name="Cranberry Lollipop"
+        description="A lollipop with cranberry flavor."
+        type="usable"
+        hp="750"
+        weight="1"/>
+    <item id="839"
+        image="use/food/lollipop2.png"
+        name="Grape Lollipop"
+        description="A lollipop with grape flavor."
+        type="usable"
+        hp="750"
+        weight="1"/>
+    <item id="840"
+        image="use/food/lollipop2.png|M:#f4950d,f4be40,ffffff"
+        name="Orange Lollipop"
+        description="A lollipop with orange flavor."
+        type="usable"
+        hp="750"
+        weight="1"/>
+    <item id="841"
+        image="generic/wrapping-paper-dotted.png|C:#871717,b21d1d,e81b1b,ffffff;M:#5749b0,6959ce,7b6ae9,b6abff,ffffff"
+        name="Red Dotted Wrap"
+        description="A role of red dotted wrapping paper."
+        type="generic"
+        weight="500"/>
+    <item id="842"
+        image="generic/wrapping-paper-dotted.png|C:#9c6d31,ba7d2e,e5a551,ffc67a,ffffff;M:#2d864c,2da457,52df83,ffffff"
+        name="Yellow Dotted Wrap"
+        description="A role of yellow dotted wrapping paper."
+        type="generic"
+        weight="500"/>
+    <item id="843"
+        image="generic/wrapping-paper-dotted.png|C:#5749b0,6959ce,7b6ae9,b6abff,ffffff;M:#62b23d,82d65a,a3f17f,ffffff"
+        name="Blue Dotted Wrap"
+        description="A role of blue dotted wrapping paper."
+        type="generic"
+        weight="500"/>
+    <item id="844"
+        image="generic/wrapping-paper-striped.png|C:#bd61c2,e37fe9,fb9fff,ffffff;M:#6724aa,9047d8,c085fb,ffffff"
+        name="Purple Striped Wrap"
+        description="A role of purple wrapping paper with stripes of darker purple."
+        type="generic"
+        weight="500"/>
+    <item id="845"
+        image="generic/wrapping-paper-striped.png|C:#c53838,dc4e4e,f37878,ffffff;M:#dabb4c,d7c56b,ebd937,ffe91d,ffffff"
+        name="Red Golden Striped Wrap"
+        description="A role of red wrapping paper with golden stripes."
+        type="generic"
+        weight="500"/>
+    <item id="846"
+        image="generic/wrapping-paper-striped.png|C:#62b23d,82d65a,a3f17f,ffffff;M:#cd6f49,f5895f,ffaf8f,ffffff"
+        name="Green Red Striped Wrap"
+        description="A role of greeb wrapping paper with red stripes."
+        type="generic"
+        weight="500"/>
+    <item id="847"
+        image="generic/plushmouboo.png"
+        name="Plush Mouboo"
+        description="A mouboo made of plush. How cute!"
+        type="generic"
+        weight="200"/>
+    <item id="848"
+        image="equipment/head/earmuffs.png"
+        name="Earmuffs"
+        description="This earmuffs can keep your ears enjoyably warm."
+        effect="M. Attack -1"
+        type="equip-head"
+        defense="2"
+        weight="20">
+        <sprite>equipment/head/earmuffs.xml</sprite>
+    </item>
+    <item id="849"
+        image="generic/christmasbox-open.png"
+        name="Open Present Box"
+        description="An open box where you can put in some present."
+        type="generic"
+        weight="20"/>
+    <item id="850"
+        image="generic/christmasbox-closed.png"
+        name="Closed Christmas Box"
+        description="A closed, but yet unwrapped box that should contain some Christmas present."
+        type="generic"
+        weight="200"/>
+    <item id="851"
+        image="generic/reinboo-stick.png"
+        name="Stick Reinboo"
+        description="A stick reinboo. This is fun!"
+        type="generic"
+        weight="50"/>
+    <item id="852"
+        image="generic/leatherball.png"
+        name="Leather Ball"
+        description="A leather ball handmade by Santa's helpers."
+        type="generic"
+        weight="20"/>
+    <item id="853"
+        image="generic/doll.png"
+        name="Doll"
+        description="A cute red-haired doll with a blue dress."
+        type="generic"
+        weight="30"/>
+    <item id="854"
+        image="equipment/head/elf-nightcap.png"
+        name="Elf Nightcap"
+        description="A comfortable nightcap worn by Santa's helpers."
+        effect="M. Attack 5"
+        type="equip-head"
+        defense="3"
+        weight="50">
+        <sprite>equipment/head/elf-nightcap.xml</sprite>
+    </item>
+    <item id="855"
+        image="equipment/head/sunglasses.png"
+        name="Sunglasses"
+        description="Some stealthy sunglasses hiding your eyes from skeptical eyes."
+        effect="M. Attack 6"
+        type="equip-head"
+        defense="2"
+        weight="10">
+        <sprite>equipment/head/sunglasses.xml</sprite>
+    </item>
+    <item id="856"
+        image="equipment/head/knit-cap.png"
+        name="Knit Cap"
+        description="A knitted cap keeping your head warm in the crual cold."
+        effect="M. Attack 0"
+        type="equip-head"
+        defense="3"
+        weight="50">
+        <sprite>equipment/head/knit-cap.xml</sprite>
+    </item>
+    <item id="857"
+        image="equipment/legs/pants.png|W:#2a2117,2f2112,493219,61411e,724c22,a97e4f"
+        name="Leather Trousers"
+        description="Trousers made out of robust leather."
+        effect="M. Attack -4, Accuracy +2"
+        type="equip-legs"
+        defense="5"
+        weight="25">
+        <sprite gender="male">equipment/legs/pants-male.xml|#2a2117,2f2112,493219,61411e,724c22,a97e4f</sprite>
+        <sprite gender="female">equipment/legs/pants-female.xml|#2a2117,2f2112,493219,61411e,724c22,a97e4f</sprite>
+    </item>
+    <item id="858"
+        image="generic/wolvern-tooth.png"
+        name="Wolvern Tooth"
+        description="A tooth from a wolvern."
+        type="generic"
+        weight="1"/>
+    <item id="859"
+        image="generic/wolvern-pelt.png|W:#000000,64727a,8996a0,a6afbf,dce9f3,ffffff"
+        name="Wolvern Pelt"
+        description="The pelt of a wolvern. Can be used to make clothes, blankets, or tents."
+        type="generic"
+        weight="50"/>
+    <item id="860"
+        image="generic/squirrel-pelt.png|R:#dfae76"
+        name="Squirrel Pelt"
+        description="The pelt of a squirrel. Trophy of the less experienced hunters, can be used to create clothes."
+        type="generic"
+        weight="20"/>
+    <item id="861"
+        image="generic/tuber.png"
+        name="White Bell Tuber"
+        description="A tuber of the White Bell flower. Alible, but only edible after cooking."
+        type="generic"
+        weight="3"/>
+    <item id="862"
+        image="generic/bottle-ice.png"
+        name="Iced Water"
+        description="A bottle containing iced water."
+        type="generic"
+        weight="10"/>
+    <item id="863"
+        image="generic/silvermirror.png"
+        name="Silver Mirror"
+        description="This mirror has some mysterious aura around it."
+        type="generic"
+        weight="10"/>
+    <item id="864"
+        image="generic/spell-book-page.png"
+        name="Book Page"
+        description="A piece of paper which seems to be a page ripped out of some book."
+        type="generic"
+        weight="1"/>
+    <item id="865"
+        image="generic/spell-book.png"
+        name="Grimoire"
+        description="An ancient spellbook filled with the wisdom of generations of magic. If you could only read it!"
+        type="generic"
+        weight="100"/>
+    <item id="866"
+        image="generic/leathersuitcase.png"
+        name="Leather Suitcase"
+        description="A really heavy leather suitcase."
+        type="generic"
+        weight="12000"/>
     <!-- HERE ARE SOME UNUSED ITEM IDS -->
 
     <item id="1198"
@@ -2824,7 +3024,7 @@
         weapon-type="bow"
         attack-action="attack_bow">
         <sprite>weapon-bow.xml</sprite>
-        <sound event="swing">weapons/bows/bow_shoot_1.ogg</sound>
+        <!-- <sound event="strike">weapons/bows/bow_shoot_1.ogg</sound> -->
     </item>
     <item id="1201"
         image="equipment/weapon/dagger-knive.png"
@@ -3203,9 +3403,9 @@
         hp="150"
         weight="7"/>
     <item id="1251"
-        image="use/food/yellow-plum.png"
-        name="Yellow Plum"
-        description="A yellow variety of plum that is both sweet and sour."
+        image="use/food/plum.png"
+        name="Plum"
+        description="A plum that is both sweet and sour."
         type="usable"
         hp="100"
         weight="10"/>
@@ -3514,6 +3714,7 @@
         description="A thin, soft and warm black sweater."
         effect="M. Attack -16"
         type="equip-torso"
+        defense="8"
         weight="35">
         <sprite gender="male">equipment/chest/vnecksweater-male.xml|#111111,222222,333333,444444,555555,aaaaaa</sprite>
         <sprite gender="female">equipment/chest/vnecksweater-female.xml|#111111,222222,333333,444444,555555,aaaaaa</sprite>
@@ -4931,7 +5132,7 @@
 
     <item id="2200"
         image="equipment/head/wizard-hat.png|W:#580000,a40000,c02020,ff6060"
-        name="Red wizard hat"
+        name="Red Wizard Hat"
         description="A wizard hat, bright red."
         effect="M. Attack +5"
         type="equip-head"
@@ -5414,7 +5615,7 @@
     <item id="3010"
         image="use/food/candypumpkin.png"
         name="Candy Pumpkin"
-        description="With a squishy interior inside a hard, crunchy shell, this sweet has a warm and delcious pumpkin flavour."
+        description="With a squishy interior inside a hard, crunchy shell, this sweet has a warm and delicious pumpkin flavour."
         type="generic"
         weight="2"/>
     <item id="3011"
@@ -5619,7 +5820,7 @@
         <sprite>equipment/head/wizard-hat.xml</sprite>
     </item>
 	<item id="4029"
-        image="use/potions/e.png|G:#bb0000;R:#ff0000;"
+        image="use/potions/e.png|G:#bb0000;R:#ff0000"
         name="Grimace of Dementia"
         description="A feared potion. If done wrong... what did you say?"
         type="generic"
@@ -5646,4 +5847,37 @@
         weight="20">
         <sprite>equipment/head/monocle.xml</sprite>
     </item>
+    <item id="4032"
+        image="equipment/head/panhat.png"
+        name="Pan Hat"
+        description="A thick iron pan, big enough to cover the average head circumference of a human being."
+        effect="M. Attack -20"
+        defense="13"
+        type="equip-head"
+        weight="400">
+        <sprite>equipment/head/panhat.xml</sprite>
+    </item>
+    <item id="4033"
+        image="equipment/head/chefhat.png"
+        name="Chef Hat"
+        description="A tall hat designed for the person in charge of a kitchen. It smells like onions."
+        effect="M. Attack +2"
+        defense="2"
+        type="equip-head"
+        weight="30">
+        <sprite>equipment/head/chefhat.xml</sprite>
+    </item>
+    <item id="4034"
+        image="generic/blackpearl.png"
+        name="Black Pearl"
+        description="A pearl. Round, shiny and black!"
+        type="generic"
+        weight="5"/>
+    <item id="4035"
+        image="use/food/pickled_beets.png"
+        name="Pickled Beets"
+        description="The result of a radically unorthodox approach to the art of pickling vegetables."
+        type="usable"
+        hp="50"
+        weight="150"/>
 </items>

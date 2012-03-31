@@ -131,7 +131,6 @@ class Broadcast:
             if (time.time() - self.Timer) > 2 * 60:
                 self.mapserv.sendall(emote(193))
                 self.Timer = time.time()
-                print "shop_broadcast"
             else:
                 time.sleep(0.1)
 

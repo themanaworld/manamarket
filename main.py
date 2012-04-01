@@ -34,7 +34,7 @@ try:
     import config
 except:
     print "no config file found. please move config.py.template to config.py and edit to your needs!"
-    exit(0);
+    sys.exit(0);
 
 from being import *
 from net.packet import *
@@ -898,7 +898,7 @@ def main():
                 if errorOccured:
                     logger.info(errorOccured)
                     shop_broadcaster.stop()
-                    exit(0)
+                    sys.exit(1)
                 else:
                     logger.info("Inventory Check Passed.")
 
@@ -1076,7 +1076,7 @@ def main():
                 if errorOccured:
                     logger.info(errorOccured)
                     shop_broadcaster.stop()
-                    exit(0)
+                    sys.exit(1)
             else:
                 pass
 

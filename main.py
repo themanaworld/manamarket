@@ -444,6 +444,9 @@ def process_whisper(nick, msg, mapserv):
             if item_id == -10:
                 mapserv.sendall(whisper(nick, "Item not found, check spelling."))
                 return
+            elif item_id in config.nosell:
+                mapserv.sendall(whisper(nick, "That item can't be added to ManaMarket, as its too heavy."))
+                return
 
             if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:
                 mapserv.sendall(whisper(nick, "You can only add one piece of equipment per slot."))

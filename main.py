@@ -577,6 +577,8 @@ def process_whisper(nick, msg, mapserv):
                 sale_tree.get_uid(uid).set('relisted', str(time_relisted + 1))
                 sale_tree.save()
                 mapserv.sendall(whisper(nick, "The item has been successfully relisted."))
+                user_tree.get_user(nick).set('last_use', str(time.time()))
+                user_tree.save()
             else:
                 mapserv.sendall(whisper(nick, "This item can no longer be relisted. Please collect it using !getback "+str(uid)+"."))
                 return
@@ -1045,6 +1047,7 @@ def main():
                         sale_tree.add_item(trader_state.item.player, trader_state.item.id, trader_state.item.amount, trader_state.item.price)
                         user_tree.get_user(trader_state.item.player).set('used_stalls', \
                             str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
+                        user_tree.get_user(trader_state.item.player).set('last_use', str(time.time()))
                         commitMessage = "Add"
 
                     elif trader_state.item.get == 0: # !buy \ !getback

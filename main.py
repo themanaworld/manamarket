@@ -441,11 +441,17 @@ def process_whisper(nick, msg, mapserv):
             price = int(broken_string[2])
             item_name = " ".join(broken_string[3:])
             item_id = ItemDB.findId(item_name)
+
+            weight = ItemDB.item_names[item_id].weight*amount
+
             if item_id == -10:
                 mapserv.sendall(whisper(nick, "Item not found, check spelling."))
                 return
             elif item_id in config.nosell:
                 mapserv.sendall(whisper(nick, "That item can't be added to ManaMarket, as its too heavy."))
+                return
+            elif weight + player_node.WEIGHT > player_node.MaxWEIGHT:
+                mapserv.sendall(whisper(nick, "I've not got enough room left to carry those. Please try again later. "))
                 return
 
             if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:

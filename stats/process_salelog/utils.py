@@ -7,14 +7,10 @@
     see www.themanaworld.org
 """
 from xml.etree.ElementTree import ElementTree
-from player import Item
-
 import time
-import mutex
-import threading
-from net.packet_out import *
 
-allowed_chars = "abcdefghijklmnoprstquvwxyzABCDEFGHIJKLMNOPRSTQUVWXYZ1234567890-_+=!@$%^&*();'<>,.?/~`| "
+class Item:
+    pass
 
 # Process a recieved ip address.
 def parse_ip(a):
@@ -50,17 +46,14 @@ class ItemDB:
     def __init__(self):
         print "Loading ItemDB"
         self.item_names = {}
-        self.itemdb_file = ElementTree(file="data/items.xml")
+        self.itemdb_file = ElementTree(file="../data/items.xml")
 
         for item in self.itemdb_file.getroot():
             if item.get('id') > 500:
                 item_struct = Item()
                 item_struct.name = item.get('name')
                 if item.get('weight'):
-                    item_struct.weight = int(item.get('weight'))
-                else:
-                    item_struct.weight = 0
-
+                    item_struct.weight = item.get('weight')
                 if item.get('type'):
                     item_struct.type = item.get('type')
                 item_struct.description = item.get('description')
@@ -80,53 +73,10 @@ class ItemLog:
     def __init__(self):
         self.log_file = 'data/logs/sale.log'
 
-    def add_item(self, item_id, amount, price, name):
+    def add_item(self, item_id, amount, price):
         file_node = open(self.log_file, 'a')
-        file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+" "+name+"\n")
+        file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+"\n")
         file_node.close()
-
-class TraderState:
-    """ Stores information regarding a trade request"""
-    def __init__(self):
-        self.Trading = mutex.mutex()
-        self.item = 0
-        self.money = 0
-        self.complete = 0
-        self.timer = 0
-
-    def reset(self):
-        self.Trading.unlock()
-        self.item = 0
-        self.complete = 0
-        self.money = 0
-        self.timer = 0
-
-class Broadcast:
-    """Send a message to the server every 5 minutes to avoid a timeout."""
-
-    def __init__(self):
-        self.mapserv = 0
-        self.Active = False
-        self.Timer = 0
-        self.shop_broadcast = threading.Thread(target=self.send_broadcast, args=())
-
-    def send_broadcast(self):
-        while self.Active:
-            if (time.time() - self.Timer) > 60:
-                self.mapserv.sendall(emote(193))
-                self.Timer = time.time()
-                #print "shop_broadcast"
-            else:
-                time.sleep(0.1)
-
-    def start(self):
-        self.Active = True
-        self.shop_broadcast.start()
-
-    def stop(self):
-        if self.Active:
-            self.Active = False
-            self.shop_broadcast.join()
 
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

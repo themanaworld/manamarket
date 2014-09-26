@@ -68,6 +68,9 @@ def process_whisper(nick, msg, mapserv):
     user = user_tree.get_user(nick)
     broken_string = msg.split()
 
+    if len(broken_string) == 0:
+        return 
+
     if user != -10:
         if int(user.get("accesslevel")) == -1: # A user who has been blocked for abuse.
             if int(user.get("used_stalls")) == 0 and int(user.get("money")) == 0:
@@ -453,6 +456,9 @@ def process_whisper(nick, msg, mapserv):
             elif weight + player_node.WEIGHT > player_node.MaxWEIGHT:
                 mapserv.sendall(whisper(nick, "I've not got enough room left to carry those. Please try again later. "))
                 return
+            elif ItemDB.item_names[item_id].weight > 10 and amount > 150:
+                mapserv.sendall(whisper(nick, "Sorry, as each of those items weighs more than 10g you can only add a maximum quantity of 150."))
+                return
 
             if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:
                 mapserv.sendall(whisper(nick, "You can only add one piece of equipment per slot."))
@@ -766,6 +772,7 @@ def main():
     shop_broadcaster.mapserv = mapserv
     # Map server packet loop
 
+    print "Entering map packet loop\n";
     while True:
         data = mapserv.recv(2048)
         if not data:
@@ -997,9 +1004,15 @@ def main():
                     logger.info("Trade item add response: Successfully added item.")
                     if trader_state.item:
                         if trader_state.item.get == 0 and index != 0-inventory_offset: # Make sure the correct item is given!
+                            # index & amount are Always 0
                             if player_node.inventory[index].itemId != trader_state.item.id or \
                                 amount != trader_state.item.amount:
-                                mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                                logger.info("Index: %s" % index)
+                                logger.info("P.ItemId: %s" % player_node.inventory[index].itemId)
+                                logger.info("T.ItemId: %s" % trader_state.item.id)
+                                logger.info("P.Amount: %s" % amount)
+                                logger.info("T.Amount: %s" % trader_state.item.amount)
+                                #mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     # If Trade item add successful - Remove the item from the inventory state.
                     if index != 0-inventory_offset: # If it's not money

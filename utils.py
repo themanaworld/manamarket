@@ -133,6 +133,4 @@ class Broadcast:
             self.shop_broadcast.join()
 
 if __name__ == '__main__':
-
-
     print "Do not run this file directly. Run main.py"

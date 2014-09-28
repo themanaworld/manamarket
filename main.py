@@ -453,7 +453,7 @@ def process_whisper(nick, msg, mapserv):
             elif item_id in config.nosell:
                 mapserv.sendall(whisper(nick, "That item can't be added to ManaMarket, as its too heavy."))
                 return
-            elif weight + player_node.WEIGHT > player_node.MaxWEIGHT:
+            elif int(weight) + player_node.WEIGHT > player_node.MaxWEIGHT:
                 mapserv.sendall(whisper(nick, "I've not got enough room left to carry those. Please try again later. "))
                 return
             elif ItemDB.item_names[item_id].weight > 10 and amount > 150:
@@ -1015,7 +1015,7 @@ def main():
                                 #mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     # If Trade item add successful - Remove the item from the inventory state.
-                    if index != 0-inventory_offset: # If it's not money
+                    if index != 0: # If it's not money
                         logger.info("Remove item: %s, Amount: %s, Index: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount),str(index))
                         player_node.remove_item(index, amount)
                     else:

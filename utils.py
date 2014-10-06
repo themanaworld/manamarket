@@ -62,7 +62,7 @@ class ItemDB:
                             item_struct = Item()
                             item_struct.name = item3.get('name')
                             if item3.get('weight'):
-                                item_struct.weight = item3.get('weight')
+                                item_struct.weight = int(item3.get('weight'))
                             else:
                                 item_struct.weight = 0
                             if item3.get('type'):

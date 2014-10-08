@@ -343,7 +343,7 @@ gPats = [
     "Big Crunch is known as the abusive GM.",
     "Narus claims she is evil but she is really sweet.",
     "Prsm has great announcements but his spelling sux.",
-    "Platyna hosts the game but shes too smart for her own good.",
+    "Platyna used to host the game but she was too smart for her own good.",
     "Captain Awesome has delusions of being an evil stone."
     ]]
   ]

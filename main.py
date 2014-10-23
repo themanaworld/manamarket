@@ -125,7 +125,7 @@ def process_whisper(nick, msg, mapserv):
     elif msg == "!info":
         # Send information related to a player.
         if user == -10:
-            mapserv.sendall(whisper(nick, "Your current access level is 0."))
+            mapserv.sendall(whisper(nick, "Your current access level is 0. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]"))
         elif int(user.get('accesslevel')) > 0:
             mapserv.sendall(whisper(nick, "Your current access level is " + user.get('accesslevel') + "."))
             items_for_sale = False
@@ -424,7 +424,7 @@ def process_whisper(nick, msg, mapserv):
     elif broken_string[0] == "!add":
         # Allows a player with the correct permissions to add an item for sale - !add <amount> <price> <item name>
         if user == -10:
-            mapserv.sendall(whisper(nick, "You are unable to add items."))
+            mapserv.sendall(whisper(nick, "You are unable to add items. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]"))
             return
 
         if len(broken_string) < 3:

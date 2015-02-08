@@ -86,6 +86,15 @@ class ItemLog:
         file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+" "+name+"\n")
         file_node.close()
 
+class DelistedLog:
+    def __init__(self):
+        self.log_file = 'data/logs/delisted.log'
+
+    def add_item(self, item_id, amount, name):
+        file_node = open(self.log_file, 'a')
+        file_node.write(str(item_id)+" "+str(amount)+" "+str(time.time())+" "+name+"\n")
+        file_node.close()
+
 class TraderState:
     """ Stores information regarding a trade request"""
     def __init__(self):

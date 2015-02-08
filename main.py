@@ -41,6 +41,7 @@ from net.packet import *
 from net.protocol import *
 from net.packet_out import *
 from player import *
+from storage import *
 import tradey
 import utils
 import eliza
@@ -50,11 +51,36 @@ shop_broadcaster = utils.Broadcast()
 trader_state = utils.TraderState()
 ItemDB = utils.ItemDB()
 player_node = Player('')
+storage = Storage()
 beingManager = BeingManager()
 user_tree = tradey.UserTree()
 sale_tree = tradey.ItemTree()
+stack_tree = tradey.StackTree()
+delisted_tree = tradey.DelistedTree()
 ItemLog = utils.ItemLog()
+DelistedLog = utils.DelistedLog()
 logger = logging.getLogger('ManaLogger')
+
+def do_delist():
+    cleaned = 0
+    for elem in sale_tree.root:
+        item = Item()
+        item.index = player_node.find_inventory_index(int(elem.get('itemId')))
+        item.itemId = int(elem.get('itemId'))
+        item.amount = int(elem.get('amount'))
+        if time.time() - float(elem.get('add_time')) > config.delist_time:
+            try:
+                storage.storage_send(mapserv, item.index, item.amount)
+            except:
+                print("Couldn't send item to storage")
+                return -10
+            storage.add_item(item)
+            player_node.remove_item(item.index, item.amount)
+            delisted_tree.add_item(elem.get('name'), item.itemId, item.amount)
+            sale_tree.remove_item_uid(elem.get('uid'))
+            DelistedLog.add_item(item.itemId, item.amount, elem.get('name'))
+            cleaned += 1
+    logger.info("Delisting routine done. %d items added to delisted.xml", cleaned)
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
@@ -90,7 +116,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "No items for sale."))
 
         for elem in sale_tree.root:
-            if time.time() - float(elem.get('add_time')) < config.relist_time: # Check if an items time is up.
+            if time.time() - float(elem.get('add_time')) < config.delist_time: # Check if an items time is up.
                 msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + \
                 elem.get("itemId") + "|" + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
                 mapserv.sendall(whisper(nick, msg))
@@ -131,10 +157,7 @@ def process_whisper(nick, msg, mapserv):
             items_for_sale = False
             for elem in sale_tree.root:
                 if elem.get('name') == nick:
-                    if time.time() - float(elem.get('add_time')) > config.relist_time:
-                        msg = "[expired] ["
-                    else:
-                        msg = "[selling] ["
+                    msg = "[selling] ["
 
                     msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
                         ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
@@ -145,8 +168,38 @@ def process_whisper(nick, msg, mapserv):
 
                     mapserv.sendall(whisper(nick, msg))
 
+            for elem in stack_tree.root:
+                if elem.get('name') == nick:
+                    msg = "[waiting] ["
+
+                    msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
+                        ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
+
+                    if items_for_sale == False:
+                        mapserv.sendall(whisper(nick, "Your have the following items waiting for sale:"))
+                        items_for_sale = True
+
+                    mapserv.sendall(whisper(nick, msg))
+
             if items_for_sale == False:
                 mapserv.sendall(whisper(nick, "You have no items for sale."))
+        
+            items_for_getback == False
+            for elem in delisted_tree.root:
+                if elem.get('name') == nick:
+                    msg = "[expired] ["
+
+                    msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
+                        ItemDB.getItem(int(elem.get("itemId"))).name + "@@]"
+
+                    if items_for_getback == False:
+                        mapserv.sendall(whisper(nick, "Your have the following items waiting for getback:"))
+                        items_for_getback = True
+
+                    mapserv.sendall(whisper(nick, msg))
+
+            if items_for_sale == False:
+                mapserv.sendall(whisper(nick, "You have no expired items."))
 
             money = int(user.get('money'))
             mapserv.sendall(whisper(nick, "You have " + str(money) + "gp to collect."))
@@ -157,7 +210,7 @@ def process_whisper(nick, msg, mapserv):
         # Sends help information
         if len(broken_string) == 1:
             mapserv.sendall(whisper(nick, "Welcome to ManaMarket!"))
-            mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid> "))
+            mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !info, !getback <uid> "))
             mapserv.sendall(whisper(nick, "For a detailed description of each command, type !help <command> e.g. !help !buy"))
             mapserv.sendall(whisper(nick, "For example to purchase an item shown in the list as:"))
             mapserv.sendall(whisper(nick, "[selling] [6] 5 [@@640|Iron Ore@@] for 1000gp each"))
@@ -189,8 +242,6 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "!add <amount> <price> <Item Name> - Add an item to the sell list (requires that you have an account)."))
             elif broken_string[1] == '!money':
                 mapserv.sendall(whisper(nick, "!money - Allows you to collect money for any sales made on your behalf."))
-            elif broken_string[1] == '!relist':
-                mapserv.sendall(whisper(nick, "!relist <uid> - Allows you to relist an item which has expired."))
             elif broken_string[1] == '!info':
                 mapserv.sendall(whisper(nick, "!info - Displays basic information about your account."))
             elif broken_string[1] == '!getback':
@@ -238,20 +289,32 @@ def process_whisper(nick, msg, mapserv):
 
         if item.isdigit(): # an id
             for elem in sale_tree.root:
-                if ((time.time() - float(elem.get('add_time'))) < config.relist_time) \
-                and int(elem.get("itemId")) == int(item): # Check if an items time is up.
+                if int(elem.get("itemId")) == int(item):
                     msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
                     + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
                     mapserv.sendall(whisper(nick, msg))
                     items_found = True
+            if not items_found: # if no items on list, gives priority to stack
+                for elem in stack_tree.root:
+                    if int(elem.get("itemId")) == int(item):
+                        msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
+                        + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
+                        mapserv.sendall(whisper(nick, msg))
+                        items_found = True
         else: # an item name
             for elem in sale_tree.root:
-                if ((time.time() - float(elem.get('add_time'))) < config.relist_time) \
-                and item.lower() in ItemDB.getItem(int(elem.get("itemId"))).name.lower(): # Check if an items time is up.
+                if item.lower() in ItemDB.getItem(int(elem.get("itemId"))).name.lower():
                     msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
                     + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
                     mapserv.sendall(whisper(nick, msg))
                     items_found = True
+            if not items_found: # if no items on list, gives priority to stack
+                for elem in stack_tree.root:
+                    if item.lower() in ItemDB.getItem(int(elem.get("itemId"))).name.lower():
+                        msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
+                        + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
+                        mapserv.sendall(whisper(nick, msg))
+                        items_found = True
 
         if not items_found:
             mapserv.sendall(whisper(nick, "Item not found."))
@@ -267,6 +330,8 @@ def process_whisper(nick, msg, mapserv):
 
         if trader_state.Trading.test():
             mapserv.sendall(whisper(nick, "I'm busy with a trade."))
+        elif storage.Open.test():
+            mapserv.sendall(whisper(nick, "I'm busy with storage."))
         else:
             mapserv.sendall(whisper(nick, "I'm free."))
 
@@ -283,7 +348,12 @@ def process_whisper(nick, msg, mapserv):
 
         if broken_string[1].isdigit():
             uid = int(broken_string[1])
-            item_info = sale_tree.get_uid(uid)
+            if uid <= MAX_INVENTORY:
+                item_info = sale_tree.get_uid(uid)
+            elif uid > MAX_INVENTORY and uid <= MAX_STORAGE:
+                item_info = stack_tree.get_uid(uid)
+            else:
+                item_info = delisted_tree.get_uid(uid)
 
             if item_info == -10:
                 mapserv.sendall(whisper(nick, "Item not found. Please check the uid number and try again."))
@@ -480,6 +550,9 @@ def process_whisper(nick, msg, mapserv):
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
+            if not storage.Open.testandset():
+                mapserv.sendall(whisper(nick, "I'm currently busy with storage. Try again shortly"))
+                return
 
             trader_state.item = item
             player_id = beingManager.findId(nick)
@@ -501,7 +574,10 @@ def process_whisper(nick, msg, mapserv):
         if broken_string[1].isdigit() and broken_string[2].isdigit():
             amount = int(broken_string[1])
             uid = int(broken_string[2])
-            item_info = sale_tree.get_uid(uid)
+            if uid <= MAX_INVENTORY:
+                item_info = sale_tree.get_uid(uid)
+            else:
+                item_info = stack_tree.get_uid(uid)
 
             if item_info == -10:
                 mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
@@ -525,6 +601,9 @@ def process_whisper(nick, msg, mapserv):
 
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
+                return
+            if not storage.Open.testandset():
+                mapserv.sendall(whisper(nick, "I'm currently buse with storage. Try again shortly"))
                 return
 
             trader_state.item = item
@@ -560,43 +639,6 @@ def process_whisper(nick, msg, mapserv):
         elif check == -10:
             mapserv.sendall(whisper(nick, "User removal failed. Please check spelling."))
 
-    elif broken_string[0] == "!relist":
-        # Relist an item which has expired - !relist <uid>.
-        if user == -10 or len(broken_string) != 2:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if int(user.get("accesslevel")) < 5:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if broken_string[1].isdigit():
-            uid = int(broken_string[1])
-            item_info = sale_tree.get_uid(uid)
-
-            if item_info == -10:
-                mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
-                return
-
-            if item_info.get('name') != nick:
-                mapserv.sendall(whisper(nick, "That doesn't belong to you!"))
-                return
-
-            time_relisted = int(item_info.get('relisted'))
-
-            if int(item_info.get('relisted')) < 3:
-                sale_tree.get_uid(uid).set('add_time', str(time.time()))
-                sale_tree.get_uid(uid).set('relisted', str(time_relisted + 1))
-                sale_tree.save()
-                mapserv.sendall(whisper(nick, "The item has been successfully relisted."))
-                user_tree.get_user(nick).set('last_use', str(time.time()))
-                user_tree.save()
-            else:
-                mapserv.sendall(whisper(nick, "This item can no longer be relisted. Please collect it using !getback "+str(uid)+"."))
-                return
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
     elif broken_string[0] == "!getback":
         # Trade the player back uid, remove from sale_items if trade successful - !getback <uid>.
         if user == -10 or len(broken_string) != 2:
@@ -609,7 +651,12 @@ def process_whisper(nick, msg, mapserv):
 
         if broken_string[1].isdigit():
             uid = int(broken_string[1])
-            item_info = sale_tree.get_uid(uid)
+            if uid <= MAX_INVENTORY:
+                item_info = sale_tree.get_uid(uid)
+            elif uid > MAX_INVENTORY and uid <= MAX_STORAGE:
+                item_info = stack_tree.get_uid(uid)
+            else:
+                item_info = delisted_tree.get_uid(uid)
 
             if item_info == -10:
                 mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
@@ -629,6 +676,9 @@ def process_whisper(nick, msg, mapserv):
 
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
+                return
+            if not storage.Open.testandset():
+                mapserv.sendall(whisper(nick, "I'm currently busy with storage. Try again shortly"))
                 return
 
             trader_state.item = item
@@ -785,6 +835,12 @@ def main():
                 logger.info("Trade Cancelled - Timeout.")
                 trader_state.timer = time.time()
                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+        
+        # The same applies to storage, now
+        if storage.Open.test():
+            if time.time() - storage.timer > 2*60:
+                logger.info("Storage operation cancelled - Timeout.")
+                mapserv.sendall(str(PacketOut(CMSG_CLOSE_STORAGE)))
 
         for packet in pb:
             if packet.is_type(SMSG_MAP_LOGIN_SUCCESS): # connected
@@ -868,12 +924,17 @@ def main():
                 err = packet.read_int8()
 
                 if err == 0:
-                    if item.index in player_node.inventory:
-                        player_node.inventory[item.index].amount += item.amount
-                    else:
-                        player_node.inventory[item.index] = item
+                    if len(player_node.inventory) <= MAX_INVENTORY:
+                        if item.index in player_node.inventory:
+                            player_node.inventory[item.index].amount += item.amount
+                        else:
+                            player_node.inventory[item.index] = item
+                        placement = "Inventory"
+                    else: # If only one slot left, move to stack
+                        item.index = storage.add_item(item)
+                        placement = "Storage"
 
-                    logger.info("Picked up: %s, Amount: %s, Index: %s", ItemDB.getItem(item.itemId).name, str(item.amount), str(item.index))
+                logger.info("Picked up: %s, Amount: %s, Index: %s - %s", ItemDB.getItem(item.itemId).name, str(item.amount), str(item.index), placement)
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY_REMOVE):
                 index = packet.read_int16() - inventory_offset
@@ -881,6 +942,24 @@ def main():
 
                 logger.info("Remove item: %s, Amount: %s, Index: %s", ItemDB.getItem(player_node.inventory[index].itemId).name, str(amount), str(index))
                 player_node.remove_item(index, amount)
+
+                # Now taking an item from stack if inventory was full before
+                if len(player_node.inventory) == MAX_INVENTORY-1:
+                    elem = stack_tree.get_uid(stack_tree.next_id)
+                    index = storage.find_storage_index(int(elem.get('itemId')))
+                    storage.storage_open(mapserv)
+                    try:
+                        storage.storage_get(mapserv, index, elem.get('amount'))
+                    except:
+                        print ("Couldn't remove item from storage")
+                        storage.storage_close(mapserv)
+                        pass
+
+                    storage.storage_close(mapserv)
+                    storage.remove_item(index, int(elem.get('amount')))
+                    sale_tree.add_item(elem.get('name'), int(elem.get('itemId')), int(elem.get('amount')), int(elem.get('price')))
+                    stack_tree.remove_item_uid(stack_tree.next_id)
+                    
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.
@@ -919,6 +998,49 @@ def main():
                     sys.exit(1)
                 else:
                     logger.info("Inventory Check Passed.")
+
+                # IMO the best moment to run delisting
+                storage.storage_open(mapserv)
+                do_delist()
+                storage.storage_close(mapserv)
+
+            elif packet.is_type(SMSG_PLAYER_STORAGE_ITEMS):
+                storage.storage.clear() # Clear storage - same as inventory.
+                packet.skip(2)
+                number = (len(packet.data)-2) / 18
+                for loop in range(number):
+                    item = Item()
+                    item.index = packet.read_int16() - storage_offset
+                    item.itemId = packet.read_int16()
+                    packet.skip(2)
+                    item.amount = packet.read_int16()
+                    packet.skip(10)
+                    storage.storage[item.index] = item
+
+            elif packet.is_type(SMSG_PLAYER_STORAGE_EQUIP):
+                packet.read_int16()
+                number = (len(packet.data)) / 20
+                for loop in range(number):
+                    item = Item()
+                    item.index = packet.read_int16() - storage_offset
+                    item.itemId = packet.read_int16()
+                    packet.skip(16)
+                    item.amount = 1
+                    storage.storage[item.index] = item
+
+                logger.info("Storage information received:")
+                for item in storage.storage:
+                    logger.info("Name: %s, Id: %s, Index: %s, Amount: %s.", \
+                    ItemDB.getItem(storage.storage[item].itemId).name, \
+                    storage.storage[item].itemId, item, storage.storage[item].amount)
+
+                errorOccured = storage.check_storage(stack_tree, delisted_tree)
+                if errorOccured:
+                    logger.info(errorOccured)
+                    shop_broadcaster.stop()
+                    sys.exit(1)
+                else:
+                    logger.info("Storage Check Passed.")
 
             elif packet.is_type(SMSG_TRADE_REQUEST):
                 name = packet.read_string(24)
@@ -1060,24 +1182,39 @@ def main():
 
             elif packet.is_type(SMSG_TRADE_COMPLETE):
                 commitMessage=""
-                # The sale_tree is only ammended after a complete trade packet.
+                # we get here which tree it should be through UID
+                if trader_state.item.get == 1:
+                    if len(player_node.inventory) <= MAX_INVENTORY:
+                        tree = sale_tree
+                    else:
+                        tree = stack_tree
+                elif trader_state.item.get == 0:
+                    if trader_state.item.uid <= MAX_INVENTORY:
+                        tree = sale_tree
+                    elif trader_state.item.uid > MAX_INVENTORY \
+                    and trader_state.item.uid <= MAX_STORAGE:
+                        tree = stack_tree
+                    else:
+                        tree = delisted_tree
+                        
+                # The trees are only ammended after a complete trade packet.
                 if trader_state.item and trader_state.money == 0:
                     if trader_state.item.get == 1: # !add
-                        sale_tree.add_item(trader_state.item.player, trader_state.item.id, trader_state.item.amount, trader_state.item.price)
+                        tree.add_item(trader_state.item.player, trader_state.item.id, trader_state.item.amount, trader_state.item.price)
                         user_tree.get_user(trader_state.item.player).set('used_stalls', \
                             str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
                         user_tree.get_user(trader_state.item.player).set('last_use', str(time.time()))
                         commitMessage = "Add"
 
                     elif trader_state.item.get == 0: # !buy \ !getback
-                        seller = sale_tree.get_uid(trader_state.item.uid).get('name')
-                        item = sale_tree.get_uid(trader_state.item.uid)
+                        seller = tree.get_uid(trader_state.item.uid).get('name')
+                        item = tree.get_uid(trader_state.item.uid)
                         current_amount = int(item.get("amount"))
-                        sale_tree.get_uid(trader_state.item.uid).set("amount", str(current_amount - trader_state.item.amount))
+                        tree.get_uid(trader_state.item.uid).set("amount", str(current_amount - trader_state.item.amount))
                         if int(item.get("amount")) == 0:
-                            user_tree.get_user(sale_tree.get_uid(trader_state.item.uid).get('name')).set('used_stalls', \
-                                str(int(user_tree.get_user(sale_tree.get_uid(trader_state.item.uid).get('name')).get('used_stalls'))-1))
-                            sale_tree.remove_item_uid(trader_state.item.uid)
+                            user_tree.get_user(tree.get_uid(trader_state.item.uid).get('name')).set('used_stalls', \
+                                str(int(user_tree.get_user(tree.get_uid(trader_state.item.uid).get('name')).get('used_stalls'))-1))
+                            tree.remove_item_uid(trader_state.item.uid)
 
                         current_money = int(user_tree.get_user(seller).get("money"))
                         user_tree.get_user(seller).set("money", str(current_money + trader_state.item.price * trader_state.item.amount))
@@ -1090,7 +1227,7 @@ def main():
                     user_tree.get_user(trader_state.money).set('money', str(0))
                     commitMessage = "Money"
 
-                sale_tree.save()
+                tree.save()
                 user_tree.save()
                 tradey.saveData(commitMessage)
 
@@ -1102,6 +1239,10 @@ def main():
                     logger.info(errorOccured)
                     shop_broadcaster.stop()
                     sys.exit(1)
+
+            elif packet.is_type(SMSG_PLAYER_STORAGE_CLOSE):
+                storage.reset()
+
             else:
                 pass
 

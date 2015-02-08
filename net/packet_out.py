@@ -15,9 +15,8 @@ def whisper(nick, message):
 
 def chat(text):
     chat_packet = PacketOut(CMSG_CHAT_MESSAGE)
-    mes = player_node.name + " : " + text
-    chat_packet.write_int16(len(mes) + 4 + 1)
-    chat_packet.write_string(mes, len(mes) + 1)
+    chat_packet.write_int16(len(text) + 4 + 1)
+    chat_packet.write_string(text, len(text) + 1)
     return str(chat_packet)
 
 def sit(val):

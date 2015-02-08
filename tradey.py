@@ -61,19 +61,20 @@ class UserTree:
 
 class ItemTree:
     def __init__(self):
-        self.tree = ElementTree(file="data/sale.xml")
+        self.save_file = 'data/sale.xml'
+        self.tree = ElementTree(file=self.save_file)
         self.root = self.tree.getroot()
         self.u_id = set()
+        self.id_itter = 1
 
         for elem in self.root:
             self.u_id.add(int(elem.get("uid")))
 
     def getId(self):
-        id_itter = 1
-        while id_itter in self.u_id:
-                id_itter += 1
+        while self.id_itter in self.u_id:
+                self.id_itter += 1
         self.u_id.add(id_itter)
-        return id_itter
+        return self.id_itter
 
     def remove_id(self, uid):
         # Free up used id's.
@@ -85,7 +86,6 @@ class ItemTree:
         user.set("itemId", str(item_id))
         user.set("price", str(price))
         user.set("add_time", str(time.time()))
-        user.set("relisted", str(0))
         user.set("amount", str(amount))
         user.set("uid", str(self.getId()))
         self.save()
@@ -107,10 +107,76 @@ class ItemTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        f = open('data/sale.xml', 'w')
+        f = open(self.save_file, 'w')
         dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root)))
         f.write(dom.toprettyxml('    '))
         f.close()
+
+class StackTree(ItemTree):
+    def __init__(self):
+        self.save_file = 'data/stack.xml'
+        self.tree = ElementTree(file=self.save_file)
+        self.root = self.tree.getroot()
+        self.u_id = set()
+        self.id_itter = 101
+        self.next_id = self.id_itter
+
+        for elem in self.root:
+            self.u_id.add(int(elem.get("uid")))
+
+    def add_item(self, name, item_id, amount, price):
+        user = SubElement(self.root, "item")
+        user.set("name", name)
+        user.set("itemId", str(item_id))
+        user.set("price", str(price))
+        user.set("amount", str(amount))
+        user.set("uid", str(self.getId()))
+        self.save()
+
+    # Here we take the oldest id put into stack.xml so we have FIFO
+    def get_next_id(self):
+        if len(self.u_id) == 0:
+            self.next_id = self.id_itter
+            return
+        else:
+            # TODO Here I'm handling rotation (gets a high number then
+            # back to 101). Any better manners to do this?
+            if min(self.u_id) - self.next_id < 0:
+               next_uid = self.next_id - min(self.u_id)
+               self.next_id = self.id_itter + next_uid + 1
+            else:
+               next_uid = min(self.u_id) - self.next_id
+               self.next_id += next_uid
+            return
+        
+
+    def remove_item_uid(self, uid):
+        for elem in self.root:
+            if elem.get("uid") == str(uid):
+                self.root.remove(elem)
+                self.remove_id(uid)
+                self.save()
+                self.get_next_id()
+                return 1
+        return -10
+
+class DelistedTree(ItemTree):
+    def __init__(self):
+        self.save_file = 'data/delisted.xml'
+        self.tree = ElementTree(file=self.save_file)
+        self.root = self.tree.getroot()
+        self.u_id = set()
+        self.id_itter = 301
+
+        for elem in self.root:
+            self.u_id.add(int(elem.get("uid")))
+
+    def add_item(self, name, item_id, amount):
+        user = SubElement(self.root, "item")
+        user.set("name", name)
+        user.set("itemId", str(item_id))
+        user.set("amount", str(amount))
+        user.set("uid", str(self.getId()))
 
 def saveData(commitmessage = "commit"):
     # This assumes the current working directory is the tradey directory.

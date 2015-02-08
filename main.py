@@ -80,7 +80,27 @@ def do_delist():
             sale_tree.remove_item_uid(elem.get('uid'))
             DelistedLog.add_item(item.itemId, item.amount, elem.get('name'))
             cleaned += 1
-    logger.info("Delisting routine done. %d items added to delisted.xml", cleaned)
+    if cleaned > 0:
+        logger.info("Delisting routine done. %d items added to delisted.xml", cleaned)
+        stacked = len(stack_tree.u_id)
+        if stack > 0:
+            if cleaned - stacked < 0:
+                stacked = cleaned
+            while stacked:
+                unstack():
+                
+def unstack():
+    elem = stack_tree.get_uid(stack_tree.next_id)
+    index = storage.find_storage_index(int(elem.get('itemId')))
+        try:
+            storage.storage_get(mapserv, index, elem.get('amount'))
+        except:
+            print ("Couldn't remove item from storage")
+            return -10
+
+    storage.remove_item(index, int(elem.get('amount')))
+    sale_tree.add_item(elem.get('name'), int(elem.get('itemId')), int(elem.get('amount')), int(elem.get('price')))
+    stack_tree.remove_item_uid(stack_tree.next_id)
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
@@ -944,22 +964,9 @@ def main():
                 player_node.remove_item(index, amount)
 
                 # Now taking an item from stack if inventory was full before
-                if len(player_node.inventory) == MAX_INVENTORY-1:
-                    elem = stack_tree.get_uid(stack_tree.next_id)
-                    index = storage.find_storage_index(int(elem.get('itemId')))
-                    storage.storage_open(mapserv)
-                    try:
-                        storage.storage_get(mapserv, index, elem.get('amount'))
-                    except:
-                        print ("Couldn't remove item from storage")
-                        storage.storage_close(mapserv)
-                        pass
-
-                    storage.storage_close(mapserv)
-                    storage.remove_item(index, int(elem.get('amount')))
-                    sale_tree.add_item(elem.get('name'), int(elem.get('itemId')), int(elem.get('amount')), int(elem.get('price')))
-                    stack_tree.remove_item_uid(stack_tree.next_id)
-                    
+                storage.storage_open(mapserv)
+                unstack()
+                storage.storage_close(mapserv)
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.

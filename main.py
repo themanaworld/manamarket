@@ -72,7 +72,7 @@ def do_delist():
             try:
                 storage.storage_send(mapserv, item.index, item.amount)
             except:
-                print("Couldn't send item to storage")
+                logger.info("Couldn't send item to storage")
                 return -10
             storage.add_item(item)
             player_node.remove_item(item.index, item.amount)
@@ -87,16 +87,20 @@ def do_delist():
             if cleaned - stacked < 0:
                 stacked = cleaned
             while stacked:
-                unstack():
+                err = unstack()
+                if err == -10:
+                    return err
+                else:
+                    stacked -= 1
                 
 def unstack():
     elem = stack_tree.get_uid(stack_tree.next_id)
     index = storage.find_storage_index(int(elem.get('itemId')))
-        try:
-            storage.storage_get(mapserv, index, elem.get('amount'))
-        except:
-            print ("Couldn't remove item from storage")
-            return -10
+    try:
+        storage.storage_get(mapserv, index, elem.get('amount'))
+    except:
+        logger.info("Couldn't remove item from storage")
+        return -10
 
     storage.remove_item(index, int(elem.get('amount')))
     sale_tree.add_item(elem.get('name'), int(elem.get('itemId')), int(elem.get('amount')), int(elem.get('price')))
@@ -146,7 +150,7 @@ def process_whisper(nick, msg, mapserv):
         data = '\302\202B1'
 
         for elem in sale_tree.root:
-            if time.time() - float(elem.get('add_time')) < config.relist_time:
+            if time.time() - float(elem.get('add_time')) < config.delist_time: # Check if an items time is up.
                 data += utils.encode_str(int(elem.get("itemId")), 2)
                 data += utils.encode_str(int(elem.get("price")), 4)
                 data += utils.encode_str(int(elem.get("amount")), 3)
@@ -177,7 +181,10 @@ def process_whisper(nick, msg, mapserv):
             items_for_sale = False
             for elem in sale_tree.root:
                 if elem.get('name') == nick:
-                    msg = "[selling] ["
+                    if time.time() - float(elem.get('add_time')) < config.delist_time:
+                        msg = "[selling] ["
+                    else:
+                        msg = "[expired] ["
 
                     msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
                         ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
@@ -287,6 +294,9 @@ def process_whisper(nick, msg, mapserv):
         else:
             if not trader_state.Trading.testandset():
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
+                return
+            if not storage.Open.testandset():
+                mapserv.sendall(whisper(nick, "I'm currently busy with storage. Try again shortly"))
                 return
 
             trader_state.money = nick
@@ -965,8 +975,14 @@ def main():
 
                 # Now taking an item from stack if inventory was full before
                 storage.storage_open(mapserv)
-                unstack()
-                storage.storage_close(mapserv)
+                # I wanna test storage because it's needed
+                if storage.Open.test():
+                    logger.info("Storage open.")
+                    unstack()
+                    storage.storage_close(mapserv)
+                else:
+                    logger.info("Failed to open storage. Please check.")
+                    storage.reset()
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.
@@ -1007,9 +1023,15 @@ def main():
                     logger.info("Inventory Check Passed.")
 
                 # IMO the best moment to run delisting
+                time.sleep(5) # Maybe server needs sometime between logging in and accepting a request?
                 storage.storage_open(mapserv)
-                do_delist()
-                storage.storage_close(mapserv)
+                if storage.Open.test():
+                    logger.info("Storage open.")
+                    do_delist()
+                    storage.storage_close(mapserv)
+                else:
+                    logger.info("Failed to open storage. Please check.")
+                    storage.reset()
 
             elif packet.is_type(SMSG_PLAYER_STORAGE_ITEMS):
                 storage.storage.clear() # Clear storage - same as inventory.

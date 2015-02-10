@@ -23,6 +23,7 @@ class Storage:
 		self.storage = {}
 		self.timer = 0
 		self.Open = mutex.mutex()
+
 	def reset(self):
 		self.Open.unlock()
 		self.timer = 0
@@ -103,8 +104,8 @@ class Storage:
 		return 0
 
 	def storage_open(self, mapserv):
-		mapserv.sendall(chat("@storage"))
 		self.timer = time.time()
+		mapserv.sendall(chat("@storage"))
 
 	def storage_close(self, mapserv):
 		mapserv.sendall(str(PacketOut(CMSG_CLOSE_STORAGE)))

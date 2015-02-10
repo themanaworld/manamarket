@@ -73,7 +73,7 @@ class ItemTree:
     def getId(self):
         while self.id_itter in self.u_id:
                 self.id_itter += 1
-        self.u_id.add(id_itter)
+        self.u_id.add(self.id_itter)
         return self.id_itter
 
     def remove_id(self, uid):

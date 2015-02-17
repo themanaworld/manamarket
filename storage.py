@@ -108,6 +108,7 @@ class Storage:
 		mapserv.sendall(chat("@storage"))
 
 	def storage_close(self, mapserv):
+ 		self.reset()
 		mapserv.sendall(str(PacketOut(CMSG_CLOSE_STORAGE)))
 
 if __name__ == '__main__':

@@ -77,7 +77,7 @@ def do_delist():
             storage.add_item(item)
             player_node.remove_item(item.index, item.amount)
             delisted_tree.add_item(elem.get('name'), item.itemId, item.amount)
-            sale_tree.remove_item_uid(elem.get('uid'))
+            sale_tree.remove_item_uid(int(elem.get('uid')))
             DelistedLog.add_item(item.itemId, item.amount, elem.get('name'))
             cleaned += 1
     if cleaned > 0:
@@ -97,7 +97,7 @@ def unstack():
     elem = stack_tree.get_uid(stack_tree.next_id)
     index = storage.find_storage_index(int(elem.get('itemId')))
     try:
-        storage.storage_get(mapserv, index, elem.get('amount'))
+        storage.storage_get(mapserv, index, int(elem.get('amount')))
     except:
         logger.info("Couldn't remove item from storage")
         return -10
@@ -961,6 +961,14 @@ def main():
                             player_node.inventory[item.index] = item
                         placement = "Inventory"
                     else: # If only one slot left, move to stack
+                        storage.storage_open(mapserv)
+                        time.sleep(3)
+                        try:
+                            storage.storage_send(mapserv, item.index, item.amount)
+                        except:
+                            logger.info("Couldn't send item to storage")
+                            return -10
+                        storage.storage_close(mapserv)
                         item.index = storage.add_item(item)
                         placement = "Storage"
 
@@ -974,15 +982,11 @@ def main():
                 player_node.remove_item(index, amount)
 
                 # Now taking an item from stack if inventory was full before
-                storage.storage_open(mapserv)
-                # I wanna test storage because it's needed
-                if storage.Open.test():
-                    logger.info("Storage open.")
+                if len(player_node.inventory) == MAX_INVENTORY-1:
+                    storage.storage_open(mapserv)
+                    time.sleep(3)
                     unstack()
                     storage.storage_close(mapserv)
-                else:
-                    logger.info("Failed to open storage. Please check.")
-                    storage.reset()
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.
@@ -1023,15 +1027,10 @@ def main():
                     logger.info("Inventory Check Passed.")
 
                 # IMO the best moment to run delisting
-                time.sleep(5) # Maybe server needs sometime between logging in and accepting a request?
                 storage.storage_open(mapserv)
-                if storage.Open.test():
-                    logger.info("Storage open.")
-                    do_delist()
-                    storage.storage_close(mapserv)
-                else:
-                    logger.info("Failed to open storage. Please check.")
-                    storage.reset()
+                time.sleep(3)
+                #do_delist()
+                #storage.storage_close(mapserv)
 
             elif packet.is_type(SMSG_PLAYER_STORAGE_ITEMS):
                 storage.storage.clear() # Clear storage - same as inventory.

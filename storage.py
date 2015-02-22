@@ -22,6 +22,7 @@ class Storage:
 	def __init__(self):
 		self.storage = {}
 		self.timer = 0
+		self.mapserv = 0
 		self.Open = mutex.mutex()
 
 	def reset(self):
@@ -89,27 +90,27 @@ class Storage:
 			if not item_found:
 				return "Server and client storage out of sync."
 
-	def storage_send(self, mapserv, index, amount):
+	def storage_send(self, index, amount):
 		packet = PacketOut(CMSG_MOVE_TO_STORAGE)
 		packet.write_int16(index + inventory_offset)
 		packet.write_int32(amount)
-		mapserv.sendall(str(packet))
+		self.mapserv.sendall(str(packet))
 		return 0
 
-	def storage_get(self, mapserv, index, amount):
+	def storage_get(self, index, amount):
 		packet = PacketOut(CMSG_MOVE_FROM_STORAGE)
 		packet.write_int16(index + storage_offset)
 		packet.write_int32(amount)
-		mapserv.sendall(str(packet))
+		self.mapserv.sendall(str(packet))
 		return 0
 
-	def storage_open(self, mapserv):
+	def storage_open(self):
 		self.timer = time.time()
-		mapserv.sendall(chat("@storage"))
+		self.mapserv.sendall(chat("@storage"))
 
-	def storage_close(self, mapserv):
+	def storage_close(self):
  		self.reset()
-		mapserv.sendall(str(PacketOut(CMSG_CLOSE_STORAGE)))
+		self.mapserv.sendall(str(PacketOut(CMSG_CLOSE_STORAGE)))
 
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

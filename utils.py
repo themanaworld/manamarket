@@ -13,6 +13,7 @@ import time
 import mutex
 import threading
 from net.packet_out import *
+from threading import _Timer
 
 allowed_chars = "abcdefghijklmnoprstquvwxyzABCDEFGHIJKLMNOPRSTQUVWXYZ1234567890-_+=!@$%^&*();'<>,.?/~`| "
 
@@ -137,6 +138,19 @@ class Broadcast:
         if self.Active:
             self.Active = False
             self.shop_broadcast.join()
+
+class CustomTimer(_Timer):
+    def __init__(self, interval, function, args=[], kwargs={}):
+        self._original_function = function
+        super(CustomTimer, self).__init__(interval, self._do_execute, args, kwargs)
+        self._result = None
+
+    def _do_execute(self, *a, **kw):
+        self._result = self._original_function(*a, **kw)
+
+    def join(self):
+        super(CustomTimer, self).join()
+        return self._result
 
 if __name__ == '__main__':
     print "Do not run this file directly. Run main.py"

@@ -22,7 +22,6 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 Additionally to the GPL, you are *strongly* encouraged to share any modifications
 you do on these sources.
 """
-
 import logging
 import logging.handlers
 import socket
@@ -70,7 +69,7 @@ def do_delist():
         item.amount = int(elem.get('amount'))
         if time.time() - float(elem.get('add_time')) > config.delist_time:
             try:
-                storage.storage_send(mapserv, item.index, item.amount)
+                storage.storage_send(item.index, item.amount)
             except:
                 logger.info("Couldn't send item to storage")
                 return -10
@@ -83,7 +82,7 @@ def do_delist():
     if cleaned > 0:
         logger.info("Delisting routine done. %d items added to delisted.xml", cleaned)
         stacked = len(stack_tree.u_id)
-        if stack > 0:
+        if stacked > 0:
             if cleaned - stacked < 0:
                 stacked = cleaned
             while stacked:
@@ -92,12 +91,13 @@ def do_delist():
                     return err
                 else:
                     stacked -= 1
-                
+    return 0
+        
 def unstack():
     elem = stack_tree.get_uid(stack_tree.next_id)
     index = storage.find_storage_index(int(elem.get('itemId')))
     try:
-        storage.storage_get(mapserv, index, int(elem.get('amount')))
+        storage.storage_get(index, int(elem.get('amount')))
     except:
         logger.info("Couldn't remove item from storage")
         return -10
@@ -105,6 +105,18 @@ def unstack():
     storage.remove_item(index, int(elem.get('amount')))
     sale_tree.add_item(elem.get('name'), int(elem.get('itemId')), int(elem.get('amount')), int(elem.get('price')))
     stack_tree.remove_item_uid(stack_tree.next_id)
+    return 0
+
+def storage_operation(func, args=[]):
+    storage.storage_open()
+    # Using a timed thread here to wait storage response. 
+    # Main reason: time.sleep() stops execution, thus it denies storage to open. Yeah, that bad.
+    timer = utils.CustomTimer(2.0, func, args)
+    timer.start()
+    result = timer.join()
+    if timer.finished:
+        storage.storage_close()
+        return result
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
@@ -850,6 +862,7 @@ def main():
 
     pb = PacketBuffer()
     shop_broadcaster.mapserv = mapserv
+    storage.mapserv = mapserv
     # Map server packet loop
 
     print "Entering map packet loop\n";
@@ -870,7 +883,7 @@ def main():
         if storage.Open.test():
             if time.time() - storage.timer > 2*60:
                 logger.info("Storage operation cancelled - Timeout.")
-                mapserv.sendall(str(PacketOut(CMSG_CLOSE_STORAGE)))
+                storage.storage_close()
 
         for packet in pb:
             if packet.is_type(SMSG_MAP_LOGIN_SUCCESS): # connected
@@ -954,23 +967,17 @@ def main():
                 err = packet.read_int8()
 
                 if err == 0:
-                    if len(player_node.inventory) <= MAX_INVENTORY:
+                    if len(player_node.inventory) < MAX_INVENTORY:
                         if item.index in player_node.inventory:
                             player_node.inventory[item.index].amount += item.amount
                         else:
                             player_node.inventory[item.index] = item
                         placement = "Inventory"
                     else: # If only one slot left, move to stack
-                        storage.storage_open(mapserv)
-                        time.sleep(3)
-                        try:
-                            storage.storage_send(mapserv, item.index, item.amount)
-                        except:
-                            logger.info("Couldn't send item to storage")
-                            return -10
-                        storage.storage_close(mapserv)
-                        item.index = storage.add_item(item)
-                        placement = "Storage"
+                        err = storage_operation(storage.storage_send, (item.index, item.amount))
+                        if err == 0:
+                            item.index = storage.add_item(item)
+                            placement = "Storage"
 
                 logger.info("Picked up: %s, Amount: %s, Index: %s - %s", ItemDB.getItem(item.itemId).name, str(item.amount), str(item.index), placement)
 
@@ -983,10 +990,7 @@ def main():
 
                 # Now taking an item from stack if inventory was full before
                 if len(player_node.inventory) == MAX_INVENTORY-1:
-                    storage.storage_open(mapserv)
-                    time.sleep(3)
-                    unstack()
-                    storage.storage_close(mapserv)
+                    storage_operation(unstack)
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.
@@ -1027,10 +1031,7 @@ def main():
                     logger.info("Inventory Check Passed.")
 
                 # IMO the best moment to run delisting
-                storage.storage_open(mapserv)
-                time.sleep(3)
-                #do_delist()
-                #storage.storage_close(mapserv)
+                storage_operation(do_delist)
 
             elif packet.is_type(SMSG_PLAYER_STORAGE_ITEMS):
                 storage.storage.clear() # Clear storage - same as inventory.

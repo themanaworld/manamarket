@@ -726,6 +726,9 @@ def process_whisper(nick, msg, mapserv):
             trader_state.item = item
             player_id = beingManager.findId(nick)
             if player_id != -10:
+                if uid > MAX_INVENTORY:
+                    item.index = storage.find_storage_index(item.id)
+                    storage_operation(storage.storage_get, (item.index, item.amount))
                 mapserv.sendall(trade_request(player_id))
                 trader_state.timer = time.time()
             else:

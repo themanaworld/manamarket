@@ -156,8 +156,8 @@ class StackTree(ItemTree):
                 self.root.remove(elem)
                 self.remove_id(uid)
                 self.save()
-                self.get_next_id()
                 return 1
+        self.get_next_id()
         return -10
 
 class DelistedTree(ItemTree):

@@ -223,7 +223,7 @@ def process_whisper(nick, msg, mapserv):
             if items_for_sale == False:
                 mapserv.sendall(whisper(nick, "You have no items for sale."))
         
-            items_for_getback == False
+            items_for_getback = False
             for elem in delisted_tree.root:
                 if elem.get('name') == nick:
                     msg = "[expired] ["

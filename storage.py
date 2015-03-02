@@ -46,7 +46,7 @@ class Storage:
 				if (item.amount > MAX_AMOUNT - self.storage[index].amount):
 					return -10
 				self.storage[index].amount += item.amount
-				return 0
+				return index
 
 		index = len(self.storage)
 		self.storage[index] = item

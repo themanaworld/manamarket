@@ -177,6 +177,7 @@ class DelistedTree(ItemTree):
         user.set("itemId", str(item_id))
         user.set("amount", str(amount))
         user.set("uid", str(self.getId()))
+        self.save()
 
 def saveData(commitmessage = "commit"):
     # This assumes the current working directory is the tradey directory.

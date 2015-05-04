@@ -799,6 +799,8 @@ def main():
                 # A Thread to send a shop broadcast: also keeps the network active to prevent timeouts.
                 shop_broadcaster.start()
 
+            elif packet.is_type(SMSG_QUEST_PLAYER_VARS):
+                continue
             elif packet.is_type(SMSG_WHISPER):
                 msg_len = packet.read_int16() - 26
                 nick = packet.read_string(24)

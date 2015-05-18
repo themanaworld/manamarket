@@ -704,7 +704,7 @@ def main():
     char_serv_packet.write_int32(accid)
     char_serv_packet.write_int32(id1)
     char_serv_packet.write_int32(id2)
-    char_serv_packet.write_int16(0)
+    char_serv_packet.write_int16(1) # this should match MIN_CLIENT_VERSION in tmwa/src/char/char.hpp
     char_serv_packet.write_int8(player_node.sex)
     char.sendall(str(char_serv_packet))
     char.recv(4)

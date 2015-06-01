@@ -15,8 +15,11 @@ def whisper(nick, message):
 
 def chat(text):
     chat_packet = PacketOut(CMSG_CHAT_MESSAGE)
-    mes = player_node.name + " : " + text
+    #TODO Find another automated manner to get ManaMarket name (previous didn't work either)
+    # Maybe a temp solution would be setting as a variable in config.py
+    mes = "ManaMarket"+" : "+text
     chat_packet.write_int16(len(mes) + 4 + 1)
+    # chat_packet = PacketOut(CMSG_CHAT_MESSAGE)
     chat_packet.write_string(mes, len(mes) + 1)
     return str(chat_packet)
 

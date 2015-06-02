@@ -29,9 +29,8 @@ class Player:
 
     def find_inventory_index(self, item_id):
         for item in self.inventory:
-            if item > 1:
-                if self.inventory[item].itemId == item_id:
-                    return item
+            if self.inventory[item].itemId == item_id:
+                return item
         return -10 # Not found - bug somewhere!
 
     def remove_item(self, index, amount):

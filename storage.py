@@ -21,13 +21,13 @@ import mutex
 class Storage:
 	def __init__(self):
 		self.storage = {}
-		self.timer = 0
+		self.timer = time.time()
 		self.mapserv = 0
 		self.Open = mutex.mutex()
 
 	def reset(self):
 		self.Open.unlock()
-		self.timer = 0
+		self.timer = time.time()
 
 	def find_storage_index(self, item_id):
 		for item in self.storage:

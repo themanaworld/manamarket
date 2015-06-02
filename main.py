@@ -1108,6 +1108,7 @@ def main():
                                 mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                                 logger.info("Trade response: Trade accepted (buy) - the item could not be added.")
                                 mapserv.sendall(whisper(trader_state.item.player, "Sorry, a problem has occured."))
+                                storage.storage_close()
 
                     elif trader_state.money: # money
                         amount = int(user_tree.get_user(trader_state.money).get('money'))

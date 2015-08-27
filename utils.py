@@ -14,7 +14,7 @@ import mutex
 import threading
 from net.packet_out import *
 
-allowed_chars = "abcdefghijklmnoprstquvwxyzABCDEFGHIJKLMNOPRSTQUVWXYZ1234567890-_+=!@$%^&*();'<>,.?/~`| "
+allowed_chars = "abcdefghijklmnoprstquvwxyzABCDEFGHIJKLMNOPRSTQUVWXYZ1234567890-_+=!@$%^&*();'\"<>,.?/~`| "
 
 # Process a recieved ip address.
 def parse_ip(a):
@@ -75,6 +75,20 @@ class ItemDB:
             if self.item_names[item_id].name == name:
                 return item_id
         return -10 #Not found
+
+
+def parse_mail_cmdargs(s):
+    if len(s) < 3:
+        return "", ""
+    if s[0] == '"':
+        end = s.find('"', 1)
+        if end > 0:
+            return s[1:end], s[end+2:]
+        else:
+            return "", ""
+    else:
+        end = s.find(' ')
+        return s[:end], s[end+1:]
 
 class ItemLog:
     """ Writes all sales to a log file, for later processing."""

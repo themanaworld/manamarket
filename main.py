@@ -44,6 +44,7 @@ from player import *
 import tradey
 import utils
 import eliza
+from onlineusers import SqliteDbManager
 
 chatbot = eliza.eliza()
 shop_broadcaster = utils.Broadcast()
@@ -55,6 +56,7 @@ user_tree = tradey.UserTree()
 sale_tree = tradey.ItemTree()
 ItemLog = utils.ItemLog()
 logger = logging.getLogger('ManaLogger')
+db_manager = SqliteDbManager(config.sqlite3_dbfile)
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
@@ -76,7 +78,7 @@ def process_whisper(nick, msg, mapserv):
             if int(user.get("used_stalls")) == 0 and int(user.get("money")) == 0:
                 mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact" + config.admin))
                 return
-            allowed_commands = ['!money', '!help', '!getback', '!info' ]
+            allowed_commands = ['!money', '!help', '!getback', '!info', '!lastseen', "!mail" ]
             if not broken_string[0] in allowed_commands:
                 mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact" + config.admin))
                 mapserv.sendall(whisper(nick, "Though, you still can do the following: "+str(allowed_commands)))
@@ -195,6 +197,10 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "!info - Displays basic information about your account."))
             elif broken_string[1] == '!getback':
                 mapserv.sendall(whisper(nick, "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell."))
+            elif broken_string[1] == '!lastseen':
+                mapserv.sendall(whisper(nick, "!lastseen <nick> - Show when <nick> was online the last time."))
+            elif broken_string[1] == '!mail':
+                mapserv.sendall(whisper(nick, "!mail <nick> <message> - Send a message to <nick>."))
             elif user != -10:
                 if int(user.get('accesslevel')) >= 10 and broken_string[1] == '!listusers':
                     mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
@@ -639,6 +645,21 @@ def process_whisper(nick, msg, mapserv):
             else:
                 mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
                 trader_state.reset()
+    elif broken_string[0] == "!lastseen":
+        who = msg[10:].strip()
+        if len(who) == 0:
+            mapserv.sendall(whisper(nick, "Usage: !lastseen <nick>"))
+        else:
+            ls_info = db_manager.get_lastseen_info(who)
+            mapserv.sendall(whisper(nick, ls_info))
+    elif broken_string[0] == "!mail":
+        to_, msg_ = utils.parse_mail_cmdargs(msg[6:].strip())
+        if to_ == "" or msg_ == "":
+            mapserv.sendall(whisper(nick, "Usage: !mail <nick> <message> OR !mail \"nick with spaces\" <message>"))
+        else:
+            db_manager.send_mail(nick, to_, msg_)
+            mapserv.sendall(whisper(nick, "Message to \"%s\" sent" % (to_)))
+
     else:
         response = chatbot.respond(msg)
         logger.info("Bot Response: "+response)
@@ -770,8 +791,10 @@ def main():
 
     pb = PacketBuffer()
     shop_broadcaster.mapserv = mapserv
-    # Map server packet loop
+    db_manager.mapserv = mapserv
+    db_manager.start()
 
+    # Map server packet loop
     print "Entering map packet loop\n";
     while True:
         data = mapserv.recv(2048)
@@ -1109,6 +1132,7 @@ def main():
 
     # On Disconnect/Exit
     logger.info("Server disconnect.")
+    db_manager.stop()
     shop_broadcaster.stop()
     mapserv.close()
 

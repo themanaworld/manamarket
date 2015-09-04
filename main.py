@@ -653,6 +653,8 @@ def process_whisper(nick, msg, mapserv):
             ls_info = db_manager.get_lastseen_info(who)
             mapserv.sendall(whisper(nick, ls_info))
     elif broken_string[0] == "!mail":
+        if user == -10:
+            mapserv.sendall(whisper(nick, "Your current access level is 0. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]"))
         to_, msg_ = utils.parse_mail_cmdargs(msg[6:].strip())
         if to_ == "" or msg_ == "":
             mapserv.sendall(whisper(nick, "Usage: !mail <nick> <message> OR !mail \"nick with spaces\" <message>"))

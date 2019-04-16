@@ -689,7 +689,7 @@ def main():
     logger.info("Login connected")
 
     login_packet = PacketOut(0x0064)
-    login_packet.write_int32(1) # <= CLIENT VERSION
+    login_packet.write_int32(6) # <= CLIENT VERSION
     login_packet.write_string(account, 24)
     login_packet.write_string(password, 24)
     login_packet.write_int8(0x03); # <= FLAGS

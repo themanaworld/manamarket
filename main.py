@@ -71,7 +71,7 @@ def process_whisper(nick, msg, mapserv):
     broken_string = msg.split()
 
     if len(broken_string) == 0:
-        return 
+        return
 
     if user != -10:
         if int(user.get("accesslevel")) == -1: # A user who has been blocked for abuse.
@@ -826,8 +826,63 @@ def main():
                 # A Thread to send a shop broadcast: also keeps the network active to prevent timeouts.
                 shop_broadcaster.start()
 
+            elif packet.is_type(SMSG_PVP_SET):
+                packet.skip(12)
+
+            elif packet.is_type(SMSG_PVP_MAP_MODE):
+                packet.skip(2)
+
+            elif packet.is_type(SMSG_QUEST_SET_VAR):
+                packet.skip(6)
+
             elif packet.is_type(SMSG_QUEST_PLAYER_VARS):
-                continue
+                nb = (packet.read_int16() - 4) / 6
+                for loop in range(nb):
+                    packet.skip(6)
+
+            elif packet.is_type(SMSG_NPC_COMMAND):
+                packet.skip(14)
+
+            elif packet.is_type(SMSG_BEING_MOVE3):
+                nb = (packet.read_int16() - 14) / 1
+                packet.skip(10)
+                for loop in range(nb):
+                    packet.skip(1)
+
+            elif packet.is_type(SMSG_MAP_MASK):
+                packet.skip(8)
+
+            elif packet.is_type(SMSG_MAP_MUSIC):
+                nb = (packet.read_int16() - 4) / 1
+                for loop in range(nb):
+                    packet.skip(1)
+
+            elif packet.is_type(SMSG_NPC_CHANGETITLE):
+                nb = (packet.read_int16() - 10) / 1
+                packet.skip(6)
+                for loop in range(nb):
+                    packet.skip(1)
+
+            elif packet.is_type(SMSG_SCRIPT_MESSAGE):
+                nb = (packet.read_int16() - 5) / 1
+                packet.skip(1)
+                for loop in range(nb):
+                    packet.skip(1)
+
+            elif packet.is_type(SMSG_PLAYER_CLIENT_COMMAND):
+                nb = (packet.read_int16() - 4) / 1
+                for loop in range(nb):
+                    packet.skip(1)
+
+            elif packet.is_type(SMSG_MAP_SET_TILES_TYPE):
+                packet.skip(32)
+
+            elif packet.is_type(SMSG_PLAYER_HP):
+                packet.skip(8)
+
+            elif packet.is_type(SMSG_PLAYER_HP_FULL):
+                packet.skip(12)
+
             elif packet.is_type(SMSG_WHISPER):
                 msg_len = packet.read_int16() - 26
                 nick = packet.read_string(24)

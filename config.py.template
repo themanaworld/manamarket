@@ -8,3 +8,11 @@ admin = ""
 #nosell = [] # Items which can't be sold - just add the itemid to the list.
 sqlite3_dbfile = "data/mm.db"
 online_txt_url = 'http://server.themanaworld.org/online.txt'
+online_txt_interval = 20
+
+irc_server = 'chat.freenode.net'
+irc_channel = '#themanaworld'
+irc_port = 6667
+irc_user = 'mana'
+irc_nick = 'mana'
+irc_password = 'world'

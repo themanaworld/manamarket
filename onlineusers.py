@@ -35,7 +35,7 @@ import config
 
 class OnlineUsers:
 
-    def __init__(self, online_url='http://server.themanaworld.org/online.txt', update_interval=60):
+    def __init__(self, online_url='http://server.themanaworld.org/online-old.txt', update_interval=20):
         self._active = False
         self._timer = 0
         self._thread = threading.Thread(target=self._threadfunc, args=())
@@ -98,7 +98,7 @@ class SqliteDbManager:
         self._mailbox_thread = threading.Thread(target=self.__mailbox_threadfunc, args=())
         self._dbfile = dbfile
         self.mapserv = None
-        self._online_manager = OnlineUsers(config.online_txt_url)
+        self._online_manager = OnlineUsers(config.online_txt_url, config.online_txt_interval)
 
         self.db, self.cur = self._open_sqlite_db(dbfile)
         self.cur.execute('create table if not exists LastSeen(\
@@ -199,6 +199,11 @@ class SqliteDbManager:
             else:
                 time.sleep(1.0)
         db.close()
+
+    def forEachOnline(self, callback, *args):
+        users = self._online_manager.online_users
+        for u in users:
+            callback(u, *args)
 
     def start(self):
         self._online_manager.start()

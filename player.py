@@ -55,7 +55,7 @@ class Player:
                     break
 
             if not item_found:
-                return "Server and client inventory out of sync."
+                return "Server and client inventory out of sync: missing %i (x%i)" % (int(elem.get('itemId')), int(elem.get('amount')))
 
         total_money = 0
         for user in user_tree.root:

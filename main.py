@@ -45,6 +45,7 @@ import tradey
 import utils
 import eliza
 from onlineusers import SqliteDbManager
+from ircbot import IRCBot
 
 chatbot = eliza.eliza()
 shop_broadcaster = utils.Broadcast()
@@ -57,6 +58,7 @@ sale_tree = tradey.ItemTree()
 ItemLog = utils.ItemLog()
 logger = logging.getLogger('ManaLogger')
 db_manager = SqliteDbManager(config.sqlite3_dbfile)
+ircbot = IRCBot()
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
@@ -78,7 +80,7 @@ def process_whisper(nick, msg, mapserv):
             if int(user.get("used_stalls")) == 0 and int(user.get("money")) == 0:
                 mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact" + config.admin))
                 return
-            allowed_commands = ['!money', '!help', '!getback', '!info', '!lastseen', "!mail" ]
+            allowed_commands = ['!money', '!help', '!getback', '!info' ]
             if not broken_string[0] in allowed_commands:
                 mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact" + config.admin))
                 mapserv.sendall(whisper(nick, "Though, you still can do the following: "+str(allowed_commands)))
@@ -201,6 +203,8 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "!lastseen <nick> - Show when <nick> was online the last time."))
             elif broken_string[1] == '!mail':
                 mapserv.sendall(whisper(nick, "!mail <nick> <message> - Send a message to <nick>."))
+            elif broken_string[1] == '!irc':
+                mapserv.sendall(whisper(nick, "!irc <on|off> - Enable/disable IRC mode."))
             elif user != -10:
                 if int(user.get('accesslevel')) >= 10 and broken_string[1] == '!listusers':
                     mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
@@ -421,9 +425,16 @@ def process_whisper(nick, msg, mapserv):
             al = int(broken_string[1])
             stalls = int(broken_string[2])
             player_name = " ".join(broken_string[3:])
-            user_tree.add_user(player_name, stalls, al)
-            mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
-            tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
+            pl_user = user_tree.get_user(player_name)
+            if pl_user == -10:
+                user_tree.add_user(player_name, stalls, al)
+                mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
+                tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
+            else:
+                pl_user.set("accesslevel", str(al))
+                pl_user.set("stalls", str(stalls))
+                mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
+                tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
         else:
             mapserv.sendall(whisper(nick, "Syntax incorrect."))
 
@@ -664,11 +675,43 @@ def process_whisper(nick, msg, mapserv):
             db_manager.send_mail(nick, to_, msg_)
             mapserv.sendall(whisper(nick, "Message to \"%s\" sent" % (to_)))
 
+    elif broken_string[0] == "!irc":
+        if len(broken_string) < 2:
+            mapserv.sendall(whisper(nick, "Incorrect syntax."))
+            return
+        if broken_string[1] == "on":
+            if user == -10:
+                user_tree.add_user(nick, 0, 0)
+                tradey.saveData("Stub User Added: "+nick+", Slots: 0, Access Level: 0")
+                user = user_tree.get_user(nick)
+            user.set("irc", "on")
+            mapserv.sendall(whisper(nick, "IRC relay mode is now enabled. Reply to chat on IRC."))
+        elif broken_string[1] == "off":
+            if user != -10:
+                user.set("irc", "off")
+                if int(user.get("accesslevel")) == 0 and int(user.get("stalls")) == 0 and int(user.get("money")) == 0:
+                    user_tree.remove_user(nick)
+                    tradey.saveData("Stub User Removed: "+nick)
+            mapserv.sendall(whisper(nick, "IRC relay mode is now disabled."))
+
+    elif user != -10 and user.get("irc") == "on":
+            ircbot.send(nick, msg)
+            db_manager.forEachOnline(broadcast_if_irc_on, nick, "TMW.%s: %s" % (nick, msg))
     else:
         response = chatbot.respond(msg)
         logger.info("Bot Response: "+response)
         mapserv.sendall(whisper(nick, response))
         #mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
+
+def broadcast_from_irc(nick, msg):
+    db_manager.forEachOnline(broadcast_if_irc_on, "IRC", u"IRC.%s: %s" % (nick, msg))
+
+def broadcast_if_irc_on(pl, sender_nick, msg):
+    if sender_nick == pl:
+        return
+    pl_user = user_tree.get_user(pl)
+    if pl_user != -10 and pl_user.get("irc") == "on":
+        mapserv.sendall(whisper(pl, msg.encode("utf-8", "ignore")))
 
 def main():
     # Use rotating log files.
@@ -721,6 +764,9 @@ def main():
             break
 
     assert charport
+
+    if charip == "127.0.0.1" and config.server != "127.0.0.1":
+        charip = config.server
 
     char = socket.socket()
     char.connect((charip, charport))
@@ -780,7 +826,11 @@ def main():
 
     assert mapport
 
+    if mapip == "127.0.0.1" and charip != "127.0.0.1":
+        mapip = charip
+
     beingManager.container[player_node.id] = Being(player_node.id, 42)
+    global mapserv
     mapserv = socket.socket()
     mapserv.connect((mapip, mapport))
     logger.info("Map connected")
@@ -797,6 +847,8 @@ def main():
     shop_broadcaster.mapserv = mapserv
     db_manager.mapserv = mapserv
     db_manager.start()
+    ircbot.broadcastFunc = broadcast_from_irc
+    ircbot.start()
 
     # Map server packet loop
     print "Entering map packet loop\n";

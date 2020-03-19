@@ -695,8 +695,9 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "IRC relay mode is now disabled."))
 
     elif user != -10 and user.get("irc") == "on":
-            ircbot.send(nick, msg)
-            db_manager.forEachOnline(broadcast_if_irc_on, nick, "TMW.%s: %s" % (nick, msg))
+            if not ircbot.isAFK(msg): # if not an AFK message
+                ircbot.send(nick, msg)
+                db_manager.forEachOnline(broadcast_if_irc_on, nick, "TMW.%s: %s" % (nick, msg))
     else:
         response = chatbot.respond(msg)
         logger.info("Bot Response: "+response)

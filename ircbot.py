@@ -1,8 +1,89 @@
 import sys
 import threading
 import irc.client
+import re
 from net.packet_out import whisper
 import config
+
+replace_map = {
+    # colors (we could use mIRC colors but we're just stripping)
+    "##0": "", "##1": "", "##2": "", "##3": "", "##4": "",
+    "##5": "", "##6": "", "##7": "", "##8": "", "##9": "",
+    # afk color
+    "##a": "",
+    # bold
+    "##B": "__", "##b": "__",
+    # emotes (we're using discord names)
+    r"%%0": ":grinning:",
+    r"%%1": ":slightly_smiling_face:",
+    r"%%2": ":wink:",
+    r"%%3": ":slightly_frowning_face:",
+    r"%%4": ":open_mouth:",
+    r"%%5": ":neutral_face:",
+    r"%%6": ":worried:",
+    r"%%7": ":sunglasses:",
+    r"%%8": ":grin:",
+    r"%%9": ":rage:",
+    r"%%:": ":yum:",
+    r"%%;": ":blush:",
+    r"%%<": ":sob:",
+    r"%%=": ":smiling_imp:",
+    r"%%>": ":no_mouth:",
+    r"%%?": ":ninja:",
+    r"%%@": ":nerd:",
+    r"%%A": ":star:",
+    r"%%B": ":question:",
+    r"%%C": ":exclamation:",
+    r"%%D": ":bulb:",
+    r"%%E": ":arrow_right:",
+    r"%%F": ":heart:",
+    r"%%G": ":smile:",
+    r"%%H": ":upside_down:",
+    r"%%I": ":wink:",
+    r"%%J": ":fearful:",
+    r"%%K": ":scream:",
+    r"%%L": ":imp:",
+    r"%%M": ":flushed:",
+    r"%%N": ":smiley:",
+    r"%%O": ":woozy_face:",
+    r"%%P": ":rage:",
+    r"%%Q": ":yum:",
+    r"%%R": ":smirk:",
+    r"%%S": ":cry:",
+    r"%%T": ":smiling_imp:",
+    r"%%U": ":face_with_raised_eyebrow:",
+    r"%%V": ":ninja:",
+    r"%%W": ":angry:",
+    r"%%X": ":star2:",
+    r"%%Y": ":grey_question:",
+    r"%%Z": ":grey_exclamation:",
+    r"%%[": ":speech_left:",
+    r"%%\\": ":rolling_eyes:",
+    r"%%]": ":heart_eyes:",
+    r"%%^": ":sick:",
+    r"%%_": ":japanese_ogre:",
+    r"%%`": ":pouting_cat:",
+    r"%%a": ":laughing:",
+    r"%%b": ":relaxed:",
+    r"%%c": ":dizzy_face:",
+    r"%%d": ":facepalm:",
+    r"%%e": ":face_with_symbols_over_mouth:",
+    r"%%f": ":tired_face:",
+    r"%%g": ":innocent:",
+    r"%%h": ":angry:",
+    r"%%i": ":cold_sweat:",
+    r"%%j": ":speech_baloon:",
+    r"%%k": ":swearing:",
+    r"%%l": ":smiley_cat:",
+    r"%%m": ":sleeping:",
+    r"%%n": ":unamused:",
+    r"%%o": ":alien:",
+    r"%%p": ":smiling_imp:",
+    r"%%q": ":jack_o_lantern:",
+    r"%%r": ":no_mouth:",
+    r"%%s": ":hearts:",
+    r"%%t": ":money_mouth:",
+}
 
 class IRCBot:
 
@@ -46,9 +127,25 @@ class IRCBot:
     def __on_disconnect(self, conn, event):
         self.stop()
 
+    def isAFK(self, msg):
+        lower = msg.lower()
+        if lower[1:3] == "afk" or lower[0:2] == "afk" or lower[0:2] == "##a":
+            return True # don't relay AFK messages
+        return False
+
+    # strip manaplus formatting
+    def manaplusToIRC(self, msg):
+        for manaplus, literal in replace_map.items():
+            msg = msg.replace(manaplus, literal)
+        # now that we're done, return it
+        return msg
+
     def send(self, nick, msg):
         if not self._ready:
             return
+        msg = self.manaplusToIRC(msg)
+        if not msg:
+            return # if the message is empty, discard it
         if msg[:1] == "!":
             self.conn.privmsg(config.irc_channel, "Command sent from TMW by %s:" % nick)
             self.conn.privmsg(config.irc_channel, msg)

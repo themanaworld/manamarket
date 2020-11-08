@@ -140,9 +140,14 @@ class SqliteDbManager:
         db.commit()
 
     def get_lastseen_info(self, nick):
-        self.cur.execute('select DATE_ from LastSeen where NICK=?',(nick,))
-        self.db.commit()   # NOTE: do I need it?
-        row = self.cur.fetchone()
+        try:
+            self.cur.execute('select DATE_ from LastSeen where NICK=?',(nick,))
+            self.db.commit()   # NOTE: do I need it?
+            row = self.cur.fetchone()
+        except sqlite3.Error, e:
+            print ("sqlite3 error: %s" % e.message)
+            row = ["although I do not remember when."]
+
         if row:
             return ('%s was seen %s' % (nick, row[0])).encode('utf-8')
         else:
@@ -161,22 +166,29 @@ class SqliteDbManager:
         db.close()
 
     def send_mail(self, from_, to_, message):
-        self.cur.execute('replace into MailBox(FROM_,TO_,MESSAGE) values(?,?,?)',
-                         (from_,to_,message))
-        self.db.commit()
+        try:
+            self.cur.execute('replace into MailBox(FROM_,TO_,MESSAGE) values(?,?,?)',
+                             (from_,to_,message))
+            self.db.commit()
+        except sqlite3.Error, e:
+            print ("sqlite3 error: %s" % e.message)
 
     def get_unread_mails(self, nick, db=None, cur=None):
-        if db is None:
-            db = self.db
-        if cur is None:
-            cur = self.cur
-        cur.execute('select FROM_,MESSAGE from MailBox where TO_=?',
-                    (nick,))
-        db.commit()
-        mails = cur.fetchall()
-        cur.execute('delete from MailBox where TO_=?',
-                    (nick,))
-        db.commit()
+        try:
+            if db is None:
+                db = self.db
+            if cur is None:
+                cur = self.cur
+            cur.execute('select FROM_,MESSAGE from MailBox where TO_=?',
+                        (nick,))
+            db.commit()
+            mails = cur.fetchall()
+            cur.execute('delete from MailBox where TO_=?',
+                        (nick,))
+            db.commit()
+        except sqlite3.Error, e:
+            print ("sqlite3 error: %s" % e.message)
+            mails = []
         return mails
 
     def __mailbox_threadfunc(self):

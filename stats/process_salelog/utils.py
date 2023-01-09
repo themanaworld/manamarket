@@ -49,7 +49,18 @@ class ItemDB:
         self.itemdb_file = ElementTree(file="../data/items.xml")
 
         for item in self.itemdb_file.getroot():
-            if item.get('name'):
+            ## Item declaration
+            if item.get('id'):
+                item3 = item
+                item_struct = Item()
+                item_struct.name = item3.get('name')
+                item_struct.weight = int(item3.get('weight', 0))
+                if item3.get('type'):
+                    item_struct.type = item3.get('type')
+                    item_struct.description = item3.get('description')
+                    self.item_names[int(item3.get('id'))] = item_struct
+            ## Import statement
+            elif item.get('name'):
                 file2 = ElementTree(file="../" + item.get('name'))
                 for item2 in file2.getroot():
                     if item2.get('name'):

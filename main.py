@@ -46,6 +46,7 @@ import utils
 import eliza
 from onlineusers import SqliteDbManager
 from ircbot import IRCBot
+from sdnotify import SystemdNotifier
 
 chatbot = eliza.eliza()
 shop_broadcaster = utils.Broadcast()
@@ -59,6 +60,10 @@ ItemLog = utils.ItemLog()
 logger = logging.getLogger('ManaLogger')
 db_manager = SqliteDbManager(config.sqlite3_dbfile)
 ircbot = IRCBot()
+sd = SystemdNotifier()
+
+# How long to wait between WATCHDOG=1 systemd keepalives, in seconds
+sd_min_keepalive_rate = 5
 
 def process_whisper(nick, msg, mapserv):
     msg = filter(lambda x: x in utils.allowed_chars, msg)
@@ -854,6 +859,15 @@ def main():
     ircbot.broadcastFunc = broadcast_from_irc
     ircbot.start()
 
+    # Functionality for systemd watchdog keepalives
+    last_notify = None
+    def notify_systemd():
+        global last_sd_notify
+        sd.notify("WATCHDOG=1")
+        last_sd_notify = time.time()
+        return True
+    notify_systemd()
+
     # Map server packet loop
     print "Entering map packet loop\n";
     while True:
@@ -861,6 +875,10 @@ def main():
         if not data:
             break
         pb.feed(data)
+
+        # If it's been more than five seconds since we last notified systemd that we're still alive, do so now.
+        if time.time() - last_notify > sd_min_keepalive_rate:
+            notify_systemd()
 
         # For unfinished trades - one way to distrupt service would be leaving a trade active.
         if trader_state.Trading.test():

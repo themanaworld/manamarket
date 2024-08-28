@@ -209,7 +209,7 @@ def process_whisper(nick, msg, mapserv):
             elif broken_string[1] == '!mail':
                 mapserv.sendall(whisper(nick, "!mail <nick> <message> - Send a message to <nick>."))
             elif broken_string[1] == '!irc':
-                mapserv.sendall(whisper(nick, "!irc <on|off> - Enable/disable IRC mode."))
+                mapserv.sendall(whisper(nick, "!irc <on|off> - Enable/disable IRC mode (the channel is also bridged to Discord)."))
             elif user != -10:
                 if int(user.get('accesslevel')) >= 10 and broken_string[1] == '!listusers':
                     mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
@@ -693,7 +693,7 @@ def process_whisper(nick, msg, mapserv):
                 tradey.saveData("Stub User Added: "+nick+", Slots: 0, Access Level: 0")
                 user = user_tree.get_user(nick)
             user.set("irc", "on")
-            mapserv.sendall(whisper(nick, "IRC relay mode is now enabled. Reply to chat on IRC."))
+            mapserv.sendall(whisper(nick, "IRC relay mode is now enabled (the channel is also bridged to Discord)."))
         elif broken_string[1] == "off":
             if user != -10:
                 user.set("irc", "off")

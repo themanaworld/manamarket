@@ -481,9 +481,6 @@ def process_whisper(nick, msg, mapserv):
             elif int(weight) + player_node.WEIGHT > player_node.MaxWEIGHT:
                 mapserv.sendall(whisper(nick, "I've not got enough room left to carry those. Please try again later. "))
                 return
-            elif ItemDB.item_names[item_id].weight > 10 and amount > 150:
-                mapserv.sendall(whisper(nick, "Sorry, as each of those items weighs more than 10g you can only add a maximum quantity of 150."))
-                return
 
             if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:
                 mapserv.sendall(whisper(nick, "You can only add one piece of equipment per slot."))

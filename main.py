@@ -860,13 +860,11 @@ def main():
     ircbot.start()
 
     # Functionality for systemd watchdog keepalives
-    last_notify = None
+    last_sd_notify = None
     def notify_systemd():
-        global last_sd_notify
         sd.notify("WATCHDOG=1")
-        last_sd_notify = time.time()
-        return True
-    notify_systemd()
+        return time.time()
+    last_sd_notify = notify_systemd()
 
     # Map server packet loop
     print "Entering map packet loop\n";
@@ -877,8 +875,8 @@ def main():
         pb.feed(data)
 
         # If it's been more than five seconds since we last notified systemd that we're still alive, do so now.
-        if time.time() - last_notify > sd_min_keepalive_rate:
-            notify_systemd()
+        if time.time() - last_sd_notify > sd_min_keepalive_rate:
+            last_sd_notify = notify_systemd()
 
         # For unfinished trades - one way to distrupt service would be leaving a trade active.
         if trader_state.Trading.test():

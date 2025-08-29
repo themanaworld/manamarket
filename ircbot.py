@@ -1,7 +1,7 @@
 import sys
 import threading
 import irc.client
-import re
+import re, time
 from net.packet_out import whisper
 import config
 
@@ -98,19 +98,38 @@ class IRCBot:
     def __client_threadfunc(self):
         print '__client_threadfunc started'
         self._reactor = irc.client.Reactor()
-        try:
-            self.conn = self._reactor.server().connect(config.irc_server, config.irc_port, config.irc_nick, password=config.irc_password)
-        except irc.client.ServerConnectionError:
-            print(sys.exc_info()[1])
-            raise SystemExit(1)
+        self._ready = False
+        # Attempt initial connection and keep reconnecting on failure/disconnect
+        while self._active:
+            if self.conn is None or not getattr(self.conn, "connected", False):
+                if not self.__connect_with_backoff():
+                    # Stopping thread
+                    break
+            try:
+                self._reactor.process_once(timeout=1)
+            except Exception as e:
+                # Keep the loop alive on transient errors
+                print e
 
+    def __register_handlers(self):
         self.conn.add_global_handler("welcome", self.__on_connect)
         self.conn.add_global_handler("join", self.__on_join)
         self.conn.add_global_handler("pubmsg", self.__on_pubmsg)
         self.conn.add_global_handler("disconnect", self.__on_disconnect)
 
+    def __connect_with_backoff(self):
+        delay = 1
         while self._active:
-            self._reactor.process_once(timeout=1)
+            try:
+                self.conn = self._reactor.server().connect(config.irc_server, config.irc_port, config.irc_nick, password=config.irc_password)
+                self.__register_handlers()
+                return True
+            except irc.client.ServerConnectionError:
+                print(sys.exc_info()[1])
+                time.sleep(delay)
+                if delay < 60:
+                    delay = min(delay * 2, 60)
+        return False
 
     def __on_connect(self, conn, event):
         print "Connected to IRC on %s:%i" % (config.irc_server, config.irc_port)
@@ -125,7 +144,10 @@ class IRCBot:
         self.broadcastFunc(event.source.nick, event.arguments[0])
 
     def __on_disconnect(self, conn, event):
-        self.stop()
+        print "Disconnected from IRC"
+        self._ready = False
+        # Clear connection reference so the main loop triggers a reconnect
+        self.conn = None
 
     def isAFK(self, msg):
         lower = msg.lower()
@@ -160,7 +182,8 @@ class IRCBot:
         self._ready = False
         if self._active:
             self._active = False
-            self._client_thread.join()
+            if threading.current_thread() != self._client_thread:
+                self._client_thread.join()
 
 
 if __name__=='__main__':

@@ -1070,6 +1070,7 @@ def main():
                 if errorOccured:
                     logger.info(errorOccured)
                     shop_broadcaster.stop()
+                    ircbot.stop()
                     sys.exit(1)
                 else:
                     logger.info("Inventory Check Passed.")
@@ -1255,6 +1256,7 @@ def main():
                 if errorOccured:
                     logger.info(errorOccured)
                     shop_broadcaster.stop()
+                    ircbot.stop()
                     sys.exit(1)
             else:
                 pass
@@ -1263,6 +1265,7 @@ def main():
     logger.info("Server disconnect.")
     db_manager.stop()
     shop_broadcaster.stop()
+    ircbot.stop()
     mapserv.close()
 
 if __name__ == '__main__':

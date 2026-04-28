@@ -467,7 +467,8 @@ def process_whisper(nick, msg, mapserv):
         if broken_string[1].isdigit() and broken_string[2].isdigit():
             amount = int(broken_string[1])
             price = int(broken_string[2])
-            item_name = " ".join(broken_string[3:])
+            item_name = utils.normalize_item_name(" ".join(broken_string[3:]))
+
             item_id = ItemDB.findId(item_name)
 
             weight = ItemDB.item_names[item_id].weight*amount

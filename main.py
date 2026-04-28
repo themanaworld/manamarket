@@ -471,10 +471,10 @@ def process_whisper(nick, msg, mapserv):
 
             # Normalize item name to support right-click "add to chat" formats like:
             # "[Concentration Potion]" or "@@640|Iron Ore@@"
-            if len(item_name) >= 2 and item_name[0] == '[' and item_name[-1] == ']':
+            if item_name.startswith('[') and item_name.endswith(']'):
                 item_name = item_name[1:-1].strip()
             # After optionally stripping brackets, handle TMW link markup "@@id|Name@@"
-            if len(item_name) >= 4 and item_name[:2] == '@@' and item_name[-2:] == '@@':
+            if item_name.startswith('@@') and item_name.endswith('@@'):
                 pipe_index = item_name.find('|')
                 if pipe_index != -1:
                     item_name = item_name[pipe_index + 1:-2].strip()

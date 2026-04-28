@@ -8,6 +8,27 @@
 """
 
 def job_type(job):
+    """Categorize a being by its job id, as sent by the server.
+
+    >>> job_type(0)
+    'player'
+    >>> job_type(25)
+    'player'
+    >>> job_type(4001)
+    'player'
+    >>> job_type(4049)
+    'player'
+    >>> job_type(45)
+    'portal'
+    >>> job_type(46)
+    'npc'
+    >>> job_type(1000)
+    'npc'
+    >>> job_type(1500)
+    'monster'
+    >>> job_type(2001) is None
+    True
+    """
     if (job <= 25 or (job >= 4001 and job <= 4049)):
         return "player"
     elif (job >= 46 and job <= 1000):

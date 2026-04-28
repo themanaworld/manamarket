@@ -17,10 +17,30 @@ allowed_chars = "abcdefghijklmnoprstquvwxyzABCDEFGHIJKLMNOPRSTQUVWXYZ1234567890-
 
 # Process a recieved ip address.
 def parse_ip(a):
+    """Decode the 32-bit IP address as sent by the login server (little-endian).
+
+    >>> parse_ip(0)
+    '0.0.0.0'
+    >>> parse_ip(0x01020304)
+    '4.3.2.1'
+    >>> parse_ip(0xC0A80101)
+    '1.1.168.192'
+    """
     return "%s.%s.%s.%s" % ((a % 256),((a >> 8) % 256),((a >> 16) % 256),((a >> 24) % 256))
 
 # Remove colors from a message
 def remove_colors(msg):
+    """Strip ##X color codes from a chat message.
+
+    >>> remove_colors("hello")
+    'hello'
+    >>> remove_colors("##5hello")
+    'hello'
+    >>> remove_colors("a##5b##cc")
+    'abc'
+    >>> remove_colors("##B##bbold##b")
+    'bold'
+    """
     if len(msg) > 2:
         for f in range(len(msg)-2):
             while (len(msg) > f + 2) and (msg[f] == "#")\
@@ -57,6 +77,21 @@ def normalize_item_name(name):
 
 # Encode string - used with 4144 shop compatibility.
 def encode_str(value, size):
+    """Encode an integer in the 4144 shop wire format (base-94, ASCII 33+).
+
+    Output is `size` characters, padded with '!' (ASCII 33) on the right.
+
+    >>> encode_str(0, 4)
+    '!!!!'
+    >>> encode_str(1, 1)
+    '"'
+    >>> encode_str(640, 2)
+    "m'"
+    >>> encode_str(1000, 2)
+    ']+'
+    >>> encode_str(94, 2)
+    '!"'
+    """
     output = ''
     base = 94
     start = 33

@@ -13,6 +13,21 @@ from subprocess import call
 from xml.etree.ElementTree import *
 
 def clean_xml(parse):
+    """Strip everything between XML tags, leaving only the tags themselves.
+
+    The persisted user/sale data is attribute-only, so text content (which
+    ElementTree.tostring() may interleave as whitespace between elements)
+    can be safely discarded before pretty-printing.
+
+    >>> clean_xml('<a><b>text</b></a>')
+    '<a><b></b></a>'
+    >>> clean_xml('  <a x="1"/>\\n  <b/>')
+    '<a x="1"/><b/>'
+    >>> clean_xml('')
+    ''
+    >>> clean_xml('no tags here')
+    ''
+    """
     data = ''
     pos_start = 0
     while parse.find('<', pos_start) != -1:

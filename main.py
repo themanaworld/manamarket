@@ -467,17 +467,7 @@ def process_whisper(nick, msg, mapserv):
         if broken_string[1].isdigit() and broken_string[2].isdigit():
             amount = int(broken_string[1])
             price = int(broken_string[2])
-            item_name = " ".join(broken_string[3:])
-
-            # Normalize item name to support right-click "add to chat" formats like:
-            # "[Concentration Potion]" or "@@640|Iron Ore@@"
-            if item_name.startswith('[') and item_name.endswith(']'):
-                item_name = item_name[1:-1].strip()
-            # After optionally stripping brackets, handle TMW link markup "@@id|Name@@"
-            if item_name.startswith('@@') and item_name.endswith('@@'):
-                pipe_index = item_name.find('|')
-                if pipe_index != -1:
-                    item_name = item_name[pipe_index + 1:-2].strip()
+            item_name = utils.normalize_item_name(" ".join(broken_string[3:]))
 
             item_id = ItemDB.findId(item_name)
 

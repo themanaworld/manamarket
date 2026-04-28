@@ -29,6 +29,33 @@ def remove_colors(msg):
                 msg = msg[0:f]+msg[f+3:]
     return msg
 
+def normalize_item_name(name):
+    """Strip TMW chat-link markup from an item name.
+
+    Supports the right-click "add to chat" formats:
+
+    >>> normalize_item_name("Iron Ore")
+    'Iron Ore'
+    >>> normalize_item_name("[Concentration Potion]")
+    'Concentration Potion'
+    >>> normalize_item_name("@@640|Iron Ore@@")
+    'Iron Ore'
+    >>> normalize_item_name("[@@640|Iron Ore@@]")
+    'Iron Ore'
+    >>> normalize_item_name("[  Iron Ore  ]")
+    'Iron Ore'
+    >>> normalize_item_name("@@no-pipe@@")
+    '@@no-pipe@@'
+    """
+    if name.startswith('[') and name.endswith(']'):
+        name = name[1:-1].strip()
+    if name.startswith('@@') and name.endswith('@@'):
+        pipe_index = name.find('|')
+        if pipe_index != -1:
+            name = name[pipe_index + 1:-2].strip()
+    return name
+
+
 # Encode string - used with 4144 shop compatibility.
 def encode_str(value, size):
     output = ''
@@ -155,4 +182,7 @@ class Broadcast:
             self.shop_broadcast.join()
 
 if __name__ == '__main__':
-    print "Do not run this file directly. Run main.py"
+    import doctest
+    failures, tests = doctest.testmod()
+    if failures == 0:
+        print "All %d doctests passed" % tests

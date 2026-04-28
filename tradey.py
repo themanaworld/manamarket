@@ -55,7 +55,7 @@ class UserTree:
     def save(self):
         # Be sure to call save() after any changes to the tree.
         f = open('data/user.xml', 'w')
-        dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root)))
+        dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root, encoding='unicode')))
         f.write(dom.toprettyxml('    '))
         f.close()
 
@@ -108,7 +108,7 @@ class ItemTree:
     def save(self):
         # Be sure to call save() after any changes to the tree.
         f = open('data/sale.xml', 'w')
-        dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root)))
+        dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root, encoding='unicode')))
         f.write(dom.toprettyxml('    '))
         f.close()
 
@@ -119,4 +119,4 @@ def saveData(commitmessage = "commit"):
     os.chdir("..")
 
 if __name__ == '__main__':
-    print "Do not run this file directly. Run main.py"
+    print("Do not run this file directly. Run main.py")

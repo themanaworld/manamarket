@@ -10,7 +10,6 @@ from xml.etree.ElementTree import ElementTree
 from player import Item
 
 import time
-import mutex
 import threading
 from net.packet_out import *
 
@@ -63,7 +62,7 @@ def encode_str(value, size):
     start = 33
     while value:
         output += chr(value % base + start)
-        value /= base
+        value //= base
 
     while len(output) < size:
         output += chr(start)
@@ -75,7 +74,7 @@ class ItemDB:
     A simple class to look up information from the items.xml file.
     """
     def __init__(self):
-        print "Loading ItemDB"
+        print("Loading ItemDB")
         self.item_names = {}
         self.itemdb_file = ElementTree(file="data/items.xml")
 
@@ -141,14 +140,15 @@ class ItemLog:
 class TraderState:
     """ Stores information regarding a trade request"""
     def __init__(self):
-        self.Trading = mutex.mutex()
+        self.Trading = threading.Lock()
         self.item = 0
         self.money = 0
         self.complete = 0
         self.timer = 0
 
     def reset(self):
-        self.Trading.unlock()
+        if self.Trading.locked():
+            self.Trading.release()
         self.item = 0
         self.complete = 0
         self.money = 0
@@ -185,4 +185,4 @@ if __name__ == '__main__':
     import doctest
     failures, tests = doctest.testmod()
     if failures == 0:
-        print "All %d doctests passed" % tests
+        print("All %d doctests passed" % tests)

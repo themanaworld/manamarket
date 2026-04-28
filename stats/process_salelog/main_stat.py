@@ -77,7 +77,7 @@ def main():
     str_list = []
     # calculate the stats
     for item in sale_dict:
-	average_week = 0
+        average_week = 0
         average_week_amount = 0
         average_month = 0
         average_month_amount = 0
@@ -91,11 +91,11 @@ def main():
 
             #out_obj.write('<tr>')
 
-            if min_price > sale_dict[item][n][1]/sale_dict[item][n][0] or min_price == 0:
-                min_price = sale_dict[item][n][1]/sale_dict[item][n][0]
+            if min_price > sale_dict[item][n][1]//sale_dict[item][n][0] or min_price == 0:
+                min_price = sale_dict[item][n][1]//sale_dict[item][n][0]
 
-            if max_price < sale_dict[item][n][1]/sale_dict[item][n][0] or max_price == 0:
-                max_price = sale_dict[item][n][1]/sale_dict[item][n][0]
+            if max_price < sale_dict[item][n][1]//sale_dict[item][n][0] or max_price == 0:
+                max_price = sale_dict[item][n][1]//sale_dict[item][n][0]
 
             if last_sold < sale_dict[item][n][2] or last_sold == 0:
                 last_sold = sale_dict[item][n][2]
@@ -108,20 +108,20 @@ def main():
                 average_month_amount += sale_dict[item][n][0]
                 average_month += sale_dict[item][n][1]
 
-            
+
             average_all_time_amount += sale_dict[item][n][0]
             average_all_time += sale_dict[item][n][1]
 
-        average_all_time /= average_all_time_amount
-        if average_week_amount > 0:        
-            average_week /= average_week_amount
+        average_all_time //= average_all_time_amount
+        if average_week_amount > 0:
+            average_week //= average_week_amount
         if average_month_amount > 0:
-            average_month /= average_month_amount
-        
-        str_list.append([average_all_time_amount,'<td>'+ItemDB.getItem(item).name+'</td>'+'<td>'+locale.format("%d", average_all_time_amount, grouping=True)+'</td>'+ \
-        '<td>'+ locale.format("%d", min_price, grouping=True) +'</td>'+'<td>'+ locale.format("%d", max_price, grouping=True) +'</td>'+'<td>'+ \
-        locale.format("%d", average_week, grouping=True) +'</td>'+ '<td>'+ locale.format("%d", average_month, grouping=True) + \
-        '</td>'+'<td>'+ locale.format("%d", average_all_time, grouping=True)+'</td>'+'<td>'+ time.asctime(time.gmtime(last_sold)) +'</td>'])
+            average_month //= average_month_amount
+
+        str_list.append([average_all_time_amount,'<td>'+ItemDB.getItem(item).name+'</td>'+'<td>'+locale.format_string("%d", average_all_time_amount, grouping=True)+'</td>'+ \
+        '<td>'+ locale.format_string("%d", min_price, grouping=True) +'</td>'+'<td>'+ locale.format_string("%d", max_price, grouping=True) +'</td>'+'<td>'+ \
+        locale.format_string("%d", average_week, grouping=True) +'</td>'+ '<td>'+ locale.format_string("%d", average_month, grouping=True) + \
+        '</td>'+'<td>'+ locale.format_string("%d", average_all_time, grouping=True)+'</td>'+'<td>'+ time.asctime(time.gmtime(last_sold)) +'</td>'])
 
     while len(str_list) > 0:
         pos = 0

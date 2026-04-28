@@ -33,8 +33,8 @@ import string
 try:
     import config
 except:
-    print "no config file found. please move config.py.template to config.py and edit to your needs!"
-    sys.exit(0);
+    print("no config file found. please move config.py.template to config.py and edit to your needs!")
+    sys.exit(0)
 
 from being import *
 from net.packet import *
@@ -66,7 +66,7 @@ sd = SystemdNotifier()
 sd_min_keepalive_rate = 5
 
 def process_whisper(nick, msg, mapserv):
-    msg = filter(lambda x: x in utils.allowed_chars, msg)
+    msg = ''.join(c for c in msg if c in utils.allowed_chars)
     if len(msg) == 0:
         return
 
@@ -113,7 +113,7 @@ def process_whisper(nick, msg, mapserv):
                 data += utils.encode_str(int(elem.get("itemId")), 2)
                 data += utils.encode_str(int(elem.get("price")), 4)
                 data += utils.encode_str(int(elem.get("amount")), 3)
-        mapserv.sendall(whisper(nick, data))
+        mapserv.sendall(whisper(nick, data.encode('latin-1')))
 
     elif broken_string[0] == '!buyitem':
         # 4144 buy command
@@ -229,7 +229,7 @@ def process_whisper(nick, msg, mapserv):
         if amount == 0:
             mapserv.sendall(whisper(nick, "You have no money to collect."))
         else:
-            if not trader_state.Trading.testandset():
+            if not trader_state.Trading.acquire(False):
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
 
@@ -280,7 +280,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
             return
 
-        if trader_state.Trading.test():
+        if trader_state.Trading.locked():
             mapserv.sendall(whisper(nick, "I'm busy with a trade."))
         else:
             mapserv.sendall(whisper(nick, "I'm free."))
@@ -500,7 +500,7 @@ def process_whisper(nick, msg, mapserv):
             item.amount = amount
             item.price = price
 
-            if not trader_state.Trading.testandset():
+            if not trader_state.Trading.acquire(False):
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
 
@@ -546,7 +546,7 @@ def process_whisper(nick, msg, mapserv):
             item.amount = amount
             item.price = int(item_info.get("price"))
 
-            if not trader_state.Trading.testandset():
+            if not trader_state.Trading.acquire(False):
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
 
@@ -650,7 +650,7 @@ def process_whisper(nick, msg, mapserv):
             item.amount = int(item_info.get("amount"))
             item.price = 0
 
-            if not trader_state.Trading.testandset():
+            if not trader_state.Trading.acquire(False):
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
                 return
 
@@ -718,7 +718,7 @@ def broadcast_if_irc_on(pl, sender_nick, msg):
         return
     pl_user = user_tree.get_user(pl)
     if pl_user != -10 and pl_user.get("irc") == "on":
-        mapserv.sendall(whisper(pl, msg.encode("utf-8", "ignore")))
+        mapserv.sendall(whisper(pl, msg))
 
 def main():
     # Use rotating log files.
@@ -743,7 +743,7 @@ def main():
     login_packet.write_string(account, 24)
     login_packet.write_string(password, 24)
     login_packet.write_int8(0x03); # <= FLAGS
-    login.sendall(str(login_packet))
+    login.sendall(bytes(login_packet))
 
     pb = PacketBuffer()
     id1 = accid = id2 = 0
@@ -784,7 +784,7 @@ def main():
     char_serv_packet.write_int32(id2)
     char_serv_packet.write_int16(1) # this should match MIN_CLIENT_VERSION in tmwa/src/char/char.hpp
     char_serv_packet.write_int8(player_node.sex)
-    char.sendall(str(char_serv_packet))
+    char.sendall(bytes(char_serv_packet))
     char.recv(4)
 
     pb = PacketBuffer()
@@ -801,7 +801,7 @@ def main():
                 packet.skip(2)
                 slots = packet.read_int16()
                 packet.skip(18)
-                count = (len(packet.data)-22) / 106
+                count = (len(packet.data)-22) // 106
                 for i in range(count):
                     player_node.id = packet.read_int32()
                     player_node.EXP = packet.read_int32()
@@ -819,7 +819,7 @@ def main():
 
                 char_select_packet = PacketOut(CMSG_CHAR_SELECT)
                 char_select_packet.write_int8(character)
-                char.sendall(str(char_select_packet))
+                char.sendall(bytes(char_select_packet))
 
             elif packet.is_type(SMSG_CHAR_MAP_INFO):
                 player_node.id = packet.read_int32()
@@ -847,7 +847,7 @@ def main():
     mapserv_login_packet.write_int32(id1)
     mapserv_login_packet.write_int32(id2)
     mapserv_login_packet.write_int8(player_node.sex)
-    mapserv.sendall(str(mapserv_login_packet))
+    mapserv.sendall(bytes(mapserv_login_packet))
     mapserv.recv(4)
 
     pb = PacketBuffer()
@@ -865,7 +865,7 @@ def main():
     last_sd_notify = notify_systemd()
 
     # Map server packet loop
-    print "Entering map packet loop\n";
+    print("Entering map packet loop\n")
     while True:
         data = mapserv.recv(2048)
         if not data:
@@ -877,11 +877,11 @@ def main():
             last_sd_notify = notify_systemd()
 
         # For unfinished trades - one way to distrupt service would be leaving a trade active.
-        if trader_state.Trading.test():
+        if trader_state.Trading.locked():
             if time.time() - trader_state.timer > 2*60:
                 logger.info("Trade Cancelled - Timeout.")
                 trader_state.timer = time.time()
-                mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
         for packet in pb:
             if packet.is_type(SMSG_MAP_LOGIN_SUCCESS): # connected
@@ -892,7 +892,7 @@ def main():
                 player_node.y = coord_data[1]
                 player_node.direction = coord_data[2]
                 logger.info("Starting Postion: %s %s %s", player_node.map, player_node.x, player_node.y)
-                mapserv.sendall(str(PacketOut(CMSG_MAP_LOADED))) # map loaded
+                mapserv.sendall(bytes(PacketOut(CMSG_MAP_LOADED))) # map loaded
                 # A Thread to send a shop broadcast: also keeps the network active to prevent timeouts.
                 shop_broadcaster.start()
 
@@ -906,7 +906,7 @@ def main():
                 packet.skip(6)
 
             elif packet.is_type(SMSG_QUEST_PLAYER_VARS):
-                nb = (packet.read_int16() - 4) / 6
+                nb = (packet.read_int16() - 4) // 6
                 for loop in range(nb):
                     packet.skip(6)
 
@@ -914,7 +914,7 @@ def main():
                 packet.skip(14)
 
             elif packet.is_type(SMSG_BEING_MOVE3):
-                nb = (packet.read_int16() - 14) / 1
+                nb = (packet.read_int16() - 14) // 1
                 packet.skip(10)
                 for loop in range(nb):
                     packet.skip(1)
@@ -923,24 +923,24 @@ def main():
                 packet.skip(8)
 
             elif packet.is_type(SMSG_MAP_MUSIC):
-                nb = (packet.read_int16() - 4) / 1
+                nb = (packet.read_int16() - 4) // 1
                 for loop in range(nb):
                     packet.skip(1)
 
             elif packet.is_type(SMSG_NPC_CHANGETITLE):
-                nb = (packet.read_int16() - 10) / 1
+                nb = (packet.read_int16() - 10) // 1
                 packet.skip(6)
                 for loop in range(nb):
                     packet.skip(1)
 
             elif packet.is_type(SMSG_SCRIPT_MESSAGE):
-                nb = (packet.read_int16() - 5) / 1
+                nb = (packet.read_int16() - 5) // 1
                 packet.skip(1)
                 for loop in range(nb):
                     packet.skip(1)
 
             elif packet.is_type(SMSG_PLAYER_CLIENT_COMMAND):
-                nb = (packet.read_int16() - 4) / 1
+                nb = (packet.read_int16() - 4) // 1
                 for loop in range(nb):
                     packet.skip(1)
 
@@ -994,7 +994,7 @@ def main():
                     beingManager.container[being_id] = Being(being_id, job)
                     requestName = PacketOut(0x0094)
                     requestName.write_int32(being_id)
-                    mapserv.sendall(str(requestName))
+                    mapserv.sendall(bytes(requestName))
 
             elif packet.is_type(SMSG_BEING_NAME_RESPONSE):
                 being_id = packet.read_int32()
@@ -1011,7 +1011,7 @@ def main():
                 player_node.x = packet.read_int16()
                 player_node.y = packet.read_int16()
                 logger.info("Player warped: %s %s %s", player_node.map, player_node.x, player_node.y)
-                mapserv.sendall(str(PacketOut(CMSG_MAP_LOADED)))
+                mapserv.sendall(bytes(PacketOut(CMSG_MAP_LOADED)))
 
             elif packet.is_type(SMSG_PLAYER_INVENTORY_ADD):
                 item = Item()
@@ -1039,7 +1039,7 @@ def main():
             elif packet.is_type(SMSG_PLAYER_INVENTORY):
                 player_node.inventory.clear() # Clear the inventory - incase of new index.
                 packet.skip(2)
-                number = (len(packet.data)-2) / 18
+                number = (len(packet.data)-2) // 18
                 for loop in range(number):
                     item = Item()
                     item.index = packet.read_int16() - inventory_offset
@@ -1051,7 +1051,7 @@ def main():
 
             elif packet.is_type(SMSG_PLAYER_EQUIPMENT):
                 packet.read_int16()
-                number = (len(packet.data)) / 20
+                number = (len(packet.data)) // 20
                 for loop in range(number):
                     item = Item()
                     item.index = packet.read_int16() - inventory_offset
@@ -1094,24 +1094,24 @@ def main():
                     logger.info("Trade response: Trade accepted.")
                     if trader_state.item:
                         if trader_state.item.get == 1: # add
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
+                            mapserv.sendall(bytes(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
                         elif trader_state.item.get == 0: # buy
                             if player_node.find_inventory_index(trader_state.item.id) != -10:
                                 mapserv.sendall(trade_add_item(player_node.find_inventory_index(trader_state.item.id), trader_state.item.amount))
-                                mapserv.sendall(str(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
+                                mapserv.sendall(bytes(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
                                 if trader_state.item.price == 0: # getback
-                                    mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                                    mapserv.sendall(bytes(PacketOut(CMSG_TRADE_OK)))
                                     trader_state.complete = 1
                             else:
-                                mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                                mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                                 logger.info("Trade response: Trade accepted (buy) - the item could not be added.")
                                 mapserv.sendall(whisper(trader_state.item.player, "Sorry, a problem has occured."))
 
                     elif trader_state.money: # money
                         amount = int(user_tree.get_user(trader_state.money).get('money'))
                         mapserv.sendall(trade_add_item(0-inventory_offset, amount))
-                        mapserv.sendall(str(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
-                        mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                        mapserv.sendall(bytes(PacketOut(CMSG_TRADE_ADD_COMPLETE)))
+                        mapserv.sendall(bytes(PacketOut(CMSG_TRADE_OK)))
 
                 else:
                     logger.info("Trade response: Trade cancelled")
@@ -1124,27 +1124,27 @@ def main():
                     if  trader_state.item.get == 1: # add
                         if amount == trader_state.item.amount and item_id == trader_state.item.id:
                             trader_state.complete = 1
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                            mapserv.sendall(bytes(PacketOut(CMSG_TRADE_OK)))
                         elif item_id == 0 and amount > 0:
                             mapserv.sendall(whisper(trader_state.item.player, "Why are you adding money?!?!"))
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                            mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                         else:
                             mapserv.sendall(whisper(trader_state.item.player, "Please check the correct item or quantity has been added."))
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                            mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     elif trader_state.item.get == 0: # buy
                         if item_id == 0 and amount == trader_state.item.price * trader_state.item.amount:
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                            mapserv.sendall(bytes(PacketOut(CMSG_TRADE_OK)))
                             trader_state.complete = 1
                         elif item_id == 0 and amount != trader_state.item.price * trader_state.item.amount:
                             trader_state.complete = 0
                         else:
                             mapserv.sendall(whisper(trader_state.item.player, "Don't give me your itenz."))
-                            mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                            mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                 elif trader_state.money: # money
                     mapserv.sendall(whisper(trader_state.money, "Don't give me your itenz."))
-                    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                    mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                 logger.info("Trade item add: ItemId:%s Amount:%s", item_id, amount)
                 # Note item_id = 0 is money
@@ -1166,7 +1166,7 @@ def main():
                                 logger.info("T.ItemId: %s" % trader_state.item.id)
                                 logger.info("P.Amount: %s" % amount)
                                 logger.info("T.Amount: %s" % trader_state.item.amount)
-                                #mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                                #mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     # If Trade item add successful - Remove the item from the inventory state.
                     if index != 0: # If it's not money
@@ -1180,17 +1180,17 @@ def main():
 
                 elif response == 1:
                     logger.info("Trade item add response: Failed - player overweight.")
-                    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                    mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                     if trader_state.item:
                         mapserv.sendall(whisper(trader_state.item.player, "You are carrying too much weight. Unload and try again."))
                 elif response == 2:
                     if trader_state.item:
                         mapserv.sendall(whisper(trader_state.item.player, "You have no free slots."))
                     logger.info("Trade item add response: Failed - No free slots.")
-                    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                    mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                 else:
                     logger.info("Trade item add response: Failed - unknown reason.")
-                    mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                    mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                     if trader_state.item:
                         mapserv.sendall(whisper(trader_state.item.player, "Sorry, a problem has occured."))
 
@@ -1200,9 +1200,9 @@ def main():
                     logger.info("Trade OK: Self.")
                 else:
                     if trader_state.complete:
-                        mapserv.sendall(str(PacketOut(CMSG_TRADE_OK)))
+                        mapserv.sendall(bytes(PacketOut(CMSG_TRADE_OK)))
                     else:
-                        mapserv.sendall(str(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
+                        mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
                         if trader_state.item:
                             mapserv.sendall(whisper(trader_state.item.player, "Trade Cancelled: Please check the traded items or money."))
 

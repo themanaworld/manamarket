@@ -39,4 +39,4 @@ class Being:
         self.type = job_type(job)
 
 if __name__ == '__main__':
-    print "Do not run this file directly. Run main.py"
+    print("Do not run this file directly. Run main.py")

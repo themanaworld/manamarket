@@ -52,14 +52,16 @@ packet_lengths = [
 
 class PacketOut:
     def __init__(self, out):
-        self.buff = ""
+        self.buff = b""
         self.write_int16(out)
 
-    def __str__(self):
+    def __bytes__(self):
         return self.buff
 
     def write_string(self, string_val, length):
-        self.buff += string_val.ljust(length, '\0')
+        if isinstance(string_val, str):
+            string_val = string_val.encode('utf-8')
+        self.buff += string_val.ljust(length, b'\0')
 
     def write_int8(self, value):
         self.buff += struct.pack("<B", value)
@@ -73,17 +75,14 @@ class PacketOut:
     def write_coords(self, x, y, direction):
         tmp = x
         tmp <<= 6
-        d_0 = 0
-        d_1 = 1
-        d_2 = 2
         d_0 = (tmp >> 8) % 256
-        d_1 = (tmp) % 256
+        d_1 = tmp % 256
         tmp = y
         tmp <<= 4
         d_1 |= (tmp >> 8) % 256
         d_2 = tmp % 256
         d_2 |= direction
-        self.buff += chr(d_0) + chr(d_1) + chr(d_2)
+        self.buff += bytes([d_0, d_1, d_2])
 
 class PacketIn:
     def __init__(self, set_data, pkt_type):
@@ -99,17 +98,20 @@ class PacketIn:
 
     def read_string(self, length):
         msg = self.data[self.pos:self.pos + length]
-        self.pos = self.pos + length
-        return msg[:msg.find('\0')]
+        self.pos += length
+        end = msg.find(b'\0')
+        if end != -1:
+            msg = msg[:end]
+        return msg.decode('utf-8', 'replace')
 
     def read_raw_string(self, length):
         msg = self.data[self.pos:self.pos + length]
-        self.pos = self.pos + length
-        return msg
+        self.pos += length
+        return msg.decode('utf-8', 'replace')
 
     def read_int8(self):
         int_value = struct.unpack("<B", self.data[self.pos:self.pos + 1])[0]
-        self.pos = self.pos + 1
+        self.pos += 1
         return int_value
 
     def make_word(self, low, high):
@@ -117,38 +119,38 @@ class PacketIn:
 
     def read_coord_pair(self):
         cdata = self.data[self.pos:self.pos + 5]
-        dst_x = (self.make_word(struct.unpack("<B", cdata[3])[0], struct.unpack("<B", cdata[2])[0] & 0x000f) >> 2)
-        dst_y = self.make_word(struct.unpack("<B", cdata[4])[0], struct.unpack("<B", cdata[3])[0] & 0x0003)
+        dst_x = (self.make_word(cdata[3], cdata[2] & 0x000f) >> 2)
+        dst_y = self.make_word(cdata[4], cdata[3] & 0x0003)
 
-        src_x = (self.make_word(struct.unpack("<B", cdata[1])[0], struct.unpack("<B", cdata[0])[0]) >> 6)
-        src_y = (self.make_word(struct.unpack("<B", cdata[2])[0], struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4)
-        self.pos = self.pos + 5
+        src_x = (self.make_word(cdata[1], cdata[0]) >> 6)
+        src_y = (self.make_word(cdata[2], cdata[1] & 0x003f) >> 4)
+        self.pos += 5
         return src_x, src_y, dst_x, dst_y
 
     def read_coord_dir(self):
         cdata = self.data[self.pos:self.pos + 3]
-        x = (self.make_word(struct.unpack("<B", cdata[1])[0] & 0x00c0, struct.unpack("<B", cdata[0])[0] & 0x00ff) >> 6) % 255
-        y = (self.make_word(struct.unpack("<B", cdata[2])[0] & 0x00f0, struct.unpack("<B", cdata[1])[0] & 0x003f) >> 4) % 255
-        dir = struct.unpack("<B", cdata[2])[0] & 0x000f
-        self.pos = self.pos + 3
+        x = (self.make_word(cdata[1] & 0x00c0, cdata[0] & 0x00ff) >> 6) % 255
+        y = (self.make_word(cdata[2] & 0x00f0, cdata[1] & 0x003f) >> 4) % 255
+        dir = cdata[2] & 0x000f
+        self.pos += 3
         return x, y, dir
 
     def read_int16(self):
         int_value = struct.unpack("<H", self.data[self.pos:self.pos + 2])[0]
-        self.pos = self.pos + 2
+        self.pos += 2
         return int_value
 
     def read_int32(self):
         int_value = struct.unpack("<L", self.data[self.pos:self.pos + 4])[0]
-        self.pos = self.pos + 4
+        self.pos += 4
         return int_value
 
     def skip(self, count):
-        self.pos = self.pos + count
+        self.pos += count
 
 class PacketBuffer:
     def __init__(self):
-        self.buff = ""
+        self.buff = b""
 
     def feed(self, data):
         self.buff += data
@@ -159,7 +161,7 @@ class PacketBuffer:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         if len(self.buff) < 2:
             raise StopIteration
 

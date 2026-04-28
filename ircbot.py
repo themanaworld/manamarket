@@ -96,7 +96,7 @@ class IRCBot:
         self.broadcastFunc = None
 
     def __client_threadfunc(self):
-        print '__client_threadfunc started'
+        print('__client_threadfunc started')
         self._reactor = irc.client.Reactor()
         try:
             self.conn = self._reactor.server().connect(config.irc_server, config.irc_port, config.irc_nick, password=config.irc_password)
@@ -113,12 +113,12 @@ class IRCBot:
             self._reactor.process_once(timeout=1)
 
     def __on_connect(self, conn, event):
-        print "Connected to IRC on %s:%i" % (config.irc_server, config.irc_port)
+        print("Connected to IRC on %s:%i" % (config.irc_server, config.irc_port))
         if irc.client.is_channel(config.irc_channel):
             self.conn.join(config.irc_channel)
 
     def __on_join(self, conn, event):
-        print "Joined channel %s" % config.irc_channel
+        print("Joined channel %s" % config.irc_channel)
         self._ready = True
 
     def __on_pubmsg(self, conn, event):
@@ -164,4 +164,4 @@ class IRCBot:
 
 
 if __name__=='__main__':
-    print "You should not run this file. Use main.py"
+    print("You should not run this file. Use main.py")

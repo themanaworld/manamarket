@@ -41,9 +41,9 @@ def main():
     for line in sales:
         line = line.split()
         t_time = time.gmtime(float(line[3]))
-        unit_price = int(line[2])/int(line[1])
-        out_obj.write('<tr> <td>'+ItemDB.getItem(int(line[0])).name+'</td> <td>'+locale.format("%d", int(line[1]), grouping=True)+'</td> <td>'+locale.format("%d", unit_price, grouping=True)+'</td> <td>'+time.asctime(t_time)+'</td> </tr>\n') 
-        sale_total += int(line[2])       
+        unit_price = int(line[2])//int(line[1])
+        out_obj.write('<tr> <td>'+ItemDB.getItem(int(line[0])).name+'</td> <td>'+locale.format_string("%d", int(line[1]), grouping=True)+'</td> <td>'+locale.format_string("%d", unit_price, grouping=True)+'</td> <td>'+time.asctime(t_time)+'</td> </tr>\n')
+        sale_total += int(line[2])
         items_sold += int(line[1])
 
     out_obj.write('</table> \n')

@@ -24,8 +24,8 @@ you do on these sources.
 
 import sys
 import logging
-import urllib2
-import string
+import urllib.request
+import urllib.error
 import sqlite3
 import datetime
 import threading
@@ -57,16 +57,16 @@ class OnlineUsers:
         If error occurs, return empty list
         """
         try:
-            data = urllib2.urlopen(self._url).read()
-        except urllib2.URLError, e:
-            # self.logger.error("urllib error: %s", e.message)
-            print ("urllib error: %s" % e.message)
+            data = urllib.request.urlopen(self._url).read().decode('utf-8', 'replace')
+        except urllib.error.URLError as e:
+            # self.logger.error("urllib error: %s", e.reason)
+            print("urllib error: %s" % e.reason)
             return []
-        start = string.find(data, '------------------------------\n') + 31
-        end = string.rfind(data, '\n\n')
+        start = data.find('------------------------------\n') + 31
+        end = data.rfind('\n\n')
         s = data[start:end]
-        return map(lambda n: n[:-5].strip() if n.endswith('(GM) ') else n.strip(),
-                   s.split('\n'))
+        return [n[:-5].strip() if n.endswith('(GM) ') else n.strip()
+                for n in s.split('\n')]
 
     def _threadfunc(self):
         while self._active:
@@ -126,15 +126,15 @@ class SqliteDbManager:
         try:
             db = sqlite3.connect(dbfile)
             cur = db.cursor()
-        except sqlite3.Error, e:
-            # self.logger.error("sqlite3 error: %s", e.message)
-            print ("sqlite3 error: %s" % e.message)
+        except sqlite3.Error as e:
+            # self.logger.error("sqlite3 error: %s", e)
+            print("sqlite3 error: %s" % e)
             sys.exit(1)
         return db, cur
 
     def __update_lastseen_info(self, users, db, cur):
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        values = map(lambda u: (u, now), users)
+        values = [(u, now) for u in users]
         cur.executemany('replace into LastSeen(NICK,DATE_) values(?,?)',
                         values)
         db.commit()
@@ -144,17 +144,17 @@ class SqliteDbManager:
             self.cur.execute('select DATE_ from LastSeen where NICK=?',(nick,))
             self.db.commit()   # NOTE: do I need it?
             row = self.cur.fetchone()
-        except sqlite3.Error, e:
-            print ("sqlite3 error: %s" % e.message)
+        except sqlite3.Error as e:
+            print("sqlite3 error: %s" % e)
             row = ["although I do not remember when."]
 
         if row:
-            return ('%s was seen %s' % (nick, row[0])).encode('utf-8')
+            return '%s was seen %s' % (nick, row[0])
         else:
             return '%s was never seen' % nick
 
     def __lastseen_threadfunc(self):
-        print '__lastseen_threadfunc started'
+        print('__lastseen_threadfunc started')
         db, cur = self._open_sqlite_db(self._dbfile)
         while self._active:
             if (time.time() - self._timer) > 60:
@@ -170,8 +170,8 @@ class SqliteDbManager:
             self.cur.execute('replace into MailBox(FROM_,TO_,MESSAGE) values(?,?,?)',
                              (from_,to_,message))
             self.db.commit()
-        except sqlite3.Error, e:
-            print ("sqlite3 error: %s" % e.message)
+        except sqlite3.Error as e:
+            print("sqlite3 error: %s" % e)
 
     def get_unread_mails(self, nick, db=None, cur=None):
         try:
@@ -186,13 +186,13 @@ class SqliteDbManager:
             cur.execute('delete from MailBox where TO_=?',
                         (nick,))
             db.commit()
-        except sqlite3.Error, e:
-            print ("sqlite3 error: %s" % e.message)
+        except sqlite3.Error as e:
+            print("sqlite3 error: %s" % e)
             mails = []
         return mails
 
     def __mailbox_threadfunc(self):
-        print '__mailbox_threadfunc started'
+        print('__mailbox_threadfunc started')
         db, cur = self._open_sqlite_db(self._dbfile)
         while self._active:
             if (time.time() - self._timer) > 60:
@@ -204,7 +204,7 @@ class SqliteDbManager:
                         self.mapserv.sendall(whisper(u, "You have %d new mails:" % (nm,)))
                         time.sleep(0.7)
                         for m in mail:
-                            msg = ("From %s : %s" % (m[0], m[1])).encode('utf-8')
+                            msg = "From %s : %s" % (m[0], m[1])
                             self.mapserv.sendall(whisper(u, msg))
                             time.sleep(0.7)
                 self._timer = time.time()
@@ -232,4 +232,4 @@ class SqliteDbManager:
 
 
 if __name__=='__main__':
-    print "You should not run this file. Use main.py"
+    print("You should not run this file. Use main.py")

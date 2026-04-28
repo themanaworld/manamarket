@@ -32,7 +32,7 @@ def encode_str(value, size):
     start = 33
     while value:
         output += chr(value % base + start)
-        value /= base
+        value //= base
 
     while len(output) < size:
         output += chr(start)
@@ -44,7 +44,7 @@ class ItemDB:
     A simple class to look up information from the items.xml file.
     """
     def __init__(self):
-        print "Loading ItemDB"
+        print("Loading ItemDB")
         self.item_names = {}
         self.itemdb_file = ElementTree(file="../data/items.xml")
 
@@ -94,4 +94,4 @@ class ItemLog:
         file_node.close()
 
 if __name__ == '__main__':
-    print "Do not run this file directly. Run main.py"
+    print("Do not run this file directly. Run main.py")

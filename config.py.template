@@ -7,8 +7,7 @@ character = 0 #slot character is in, 0 for first, 1 for second, 2 for third
 admin = ""
 #nosell = [] # Items which can't be sold - just add the itemid to the list.
 sqlite3_dbfile = "data/mm.db"
-online_txt_url = 'http://server.themanaworld.org/online.txt'
-online_txt_interval = 20
+online_interval = 20
 
 irc_server = 'chat.freenode.net'
 irc_channel = '#themanaworld'

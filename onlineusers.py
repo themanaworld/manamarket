@@ -24,23 +24,20 @@ you do on these sources.
 
 import sys
 import logging
-import urllib.request
-import urllib.error
 import sqlite3
 import datetime
 import threading
 import time
 from net.packet_out import whisper
-import config
 
 class OnlineUsers:
+    """Thread-safe storage for the list of online users.
 
-    def __init__(self, online_url='http://server.themanaworld.org/online-old.txt', update_interval=20):
-        self._active = False
-        self._timer = 0
-        self._thread = threading.Thread(target=self._threadfunc, args=())
-        self._url = online_url
-        self._update_interval = update_interval
+    Updated from the main packet loop on SMSG_ONLINE_LIST, read from the
+    SqliteDbManager's lastseen and mailbox background threads.
+    """
+
+    def __init__(self):
         self.__lock = threading.Lock()
         self.__online_users = []
 
@@ -51,42 +48,10 @@ class OnlineUsers:
         self.__lock.release()
         return users
 
-    def dl_online_list(self):
-        """
-        Download online.txt, parse it, and return a list of online user nicks.
-        If error occurs, return empty list
-        """
-        try:
-            data = urllib.request.urlopen(self._url).read().decode('utf-8', 'replace')
-        except urllib.error.URLError as e:
-            # self.logger.error("urllib error: %s", e.reason)
-            print("urllib error: %s" % e.reason)
-            return []
-        start = data.find('------------------------------\n') + 31
-        end = data.rfind('\n\n')
-        s = data[start:end]
-        return [n[:-5].strip() if n.endswith('(GM) ') else n.strip()
-                for n in s.split('\n')]
-
-    def _threadfunc(self):
-        while self._active:
-            if (time.time() - self._timer) > self._update_interval:
-                users = self.dl_online_list()
-                self.__lock.acquire(True)
-                self.__online_users=users
-                self.__lock.release()
-                self._timer = time.time()
-            else:
-                time.sleep(1.0)
-
-    def start(self):
-        self._active = True
-        self._thread.start()
-
-    def stop(self):
-        if self._active:
-            self._active = False
-            self._thread.join()
+    def update(self, users):
+        self.__lock.acquire(True)
+        self.__online_users = users
+        self.__lock.release()
 
 
 class SqliteDbManager:
@@ -98,7 +63,7 @@ class SqliteDbManager:
         self._mailbox_thread = threading.Thread(target=self.__mailbox_threadfunc, args=())
         self._dbfile = dbfile
         self.mapserv = None
-        self._online_manager = OnlineUsers(config.online_txt_url, config.online_txt_interval)
+        self._online_manager = OnlineUsers()
 
         self.db, self.cur = self._open_sqlite_db(dbfile)
         self.cur.execute('create table if not exists LastSeen(\
@@ -217,8 +182,10 @@ class SqliteDbManager:
         for u in users:
             callback(u, *args)
 
+    def update_online_users(self, users):
+        self._online_manager.update(users)
+
     def start(self):
-        self._online_manager.start()
         self._active = True
         self._lastseen_thread.start()
         self._mailbox_thread.start()
@@ -228,7 +195,6 @@ class SqliteDbManager:
             self._active = False
             self._lastseen_thread.join()
             self._mailbox_thread.join()
-        self._online_manager.stop()
 
 
 if __name__=='__main__':

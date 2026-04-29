@@ -6,6 +6,9 @@ def emote(emoteId):
     emote_packet.write_int8(emoteId)
     return bytes(emote_packet)
 
+def request_online_list():
+    return bytes(PacketOut(CMSG_ONLINE_LIST))
+
 def whisper(nick, message):
     if isinstance(message, bytes):
         msg_bytes = message

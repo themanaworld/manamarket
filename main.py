@@ -739,7 +739,7 @@ def main():
     logger.info("Login connected")
 
     login_packet = PacketOut(0x0064)
-    login_packet.write_int32(6) # <= CLIENT VERSION
+    login_packet.write_int32(9) # <= CLIENT VERSION
     login_packet.write_string(account, 24)
     login_packet.write_string(password, 24)
     login_packet.write_int8(0x03); # <= FLAGS
@@ -864,6 +864,8 @@ def main():
         return time.time()
     last_sd_notify = notify_systemd()
 
+    last_online_request = 0
+
     # Map server packet loop
     print("Entering map packet loop\n")
     while True:
@@ -875,6 +877,10 @@ def main():
         # If it's been more than five seconds since we last notified systemd that we're still alive, do so now.
         if time.time() - last_sd_notify > sd_min_keepalive_rate:
             last_sd_notify = notify_systemd()
+
+        if time.time() - last_online_request > config.online_interval:
+            mapserv.sendall(request_online_list())
+            last_online_request = time.time()
 
         # For unfinished trades - one way to distrupt service would be leaving a trade active.
         if trader_state.Trading.locked():
@@ -909,6 +915,16 @@ def main():
                 nb = (packet.read_int16() - 4) // 6
                 for loop in range(nb):
                     packet.skip(6)
+
+            elif packet.is_type(SMSG_ONLINE_LIST):
+                length = packet.read_int16()
+                count = (length - 4) // 31
+                online = []
+                for _ in range(count):
+                    packet.skip(4) # account id
+                    online.append(packet.read_string(24))
+                    packet.skip(3) # level, gm level, gender
+                db_manager.update_online_users(online)
 
             elif packet.is_type(SMSG_NPC_COMMAND):
                 packet.skip(14)

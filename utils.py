@@ -196,7 +196,7 @@ class Broadcast:
         self.mapserv = 0
         self.Active = False
         self.Timer = 0
-        self.shop_broadcast = threading.Thread(target=self.send_broadcast, args=())
+        self.shop_broadcast = threading.Thread(target=self.send_broadcast, args=(), daemon=True)
 
     def send_broadcast(self):
         while self.Active:

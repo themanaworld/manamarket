@@ -59,8 +59,8 @@ class SqliteDbManager:
     def __init__(self, dbfile):
         self._active = False
         self._timer = 0
-        self._lastseen_thread = threading.Thread(target=self.__lastseen_threadfunc, args=())
-        self._mailbox_thread = threading.Thread(target=self.__mailbox_threadfunc, args=())
+        self._lastseen_thread = threading.Thread(target=self.__lastseen_threadfunc, args=(), daemon=True)
+        self._mailbox_thread = threading.Thread(target=self.__mailbox_threadfunc, args=(), daemon=True)
         self._dbfile = dbfile
         self.mapserv = None
         self._online_manager = OnlineUsers()

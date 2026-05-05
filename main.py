@@ -705,16 +705,20 @@ def process_whisper(nick, msg, mapserv):
         if broken_string[1] == "on":
             if user == -10:
                 user_tree.add_user(nick, 0, 0)
-                tradey.saveData("Stub User Added: "+nick+", Slots: 0, Access Level: 0")
                 user = user_tree.get_user(nick)
             user.set("irc", "on")
+            user_tree.save()
+            tradey.saveData("IRC relay enabled for "+nick)
             mapserv.sendall(whisper(nick, "IRC relay mode is now enabled (the channel is also bridged to Discord)."))
         elif broken_string[1] == "off":
             if user != -10:
-                user.set("irc", "off")
                 if int(user.get("accesslevel")) == 0 and int(user.get("stalls")) == 0 and int(user.get("money")) == 0:
                     user_tree.remove_user(nick)
                     tradey.saveData("Stub User Removed: "+nick)
+                else:
+                    user.set("irc", "off")
+                    user_tree.save()
+                    tradey.saveData("IRC relay disabled for "+nick)
             mapserv.sendall(whisper(nick, "IRC relay mode is now disabled."))
 
     elif user != -10 and user.get("irc") == "on":

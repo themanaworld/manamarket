@@ -153,6 +153,9 @@ class IRCBot:
             self.conn.privmsg(config.irc_channel, "<%s> %s" % (nick, msg))
 
     def start(self):
+        if not getattr(config, 'irc_enabled', True):
+            print("IRC disabled in config; not connecting.")
+            return
         self._active = True
         self._client_thread.start()
 

@@ -9,6 +9,7 @@ admin = ""
 sqlite3_dbfile = "data/mm.db"
 online_interval = 20
 
+irc_enabled = True
 irc_server = 'chat.freenode.net'
 irc_channel = '#themanaworld'
 irc_port = 6667

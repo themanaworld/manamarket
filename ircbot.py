@@ -97,7 +97,10 @@ class IRCBot:
 
     def __client_threadfunc(self):
         print('__client_threadfunc started')
-        self._reactor = irc.client.Reactor()
+        # python-irc renamed IRC -> Reactor in 14.0; older Debian/Ubuntu
+        # packages still expose the IRC name. Pick whichever exists.
+        ReactorClass = getattr(irc.client, 'Reactor', None) or irc.client.IRC
+        self._reactor = ReactorClass()
         try:
             self.conn = self._reactor.server().connect(config.irc_server, config.irc_port, config.irc_nick, password=config.irc_password)
         except irc.client.ServerConnectionError:

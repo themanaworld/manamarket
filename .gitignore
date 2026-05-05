@@ -1,4 +1,5 @@
 data/
 items/
+.venv/
 config.py
 *.pyc

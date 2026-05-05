@@ -862,6 +862,10 @@ def main():
     def notify_systemd():
         sd.notify("WATCHDOG=1")
         return time.time()
+    # READY=1 is required once when the unit is Type=notify; without it
+    # systemd treats startup as never having finished and kills the
+    # service after TimeoutStartSec.
+    sd.notify("READY=1")
     last_sd_notify = notify_systemd()
 
     last_online_request = 0

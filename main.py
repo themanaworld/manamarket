@@ -65,6 +65,19 @@ sd = SystemdNotifier()
 # How long to wait between WATCHDOG=1 systemd keepalives, in seconds
 sd_min_keepalive_rate = 5
 
+# Toggled off when check_inventory() detects the bot's in-game state
+# disagrees with what data/{user,sale}.xml say it should be. The bot
+# stays online (and the IRC bridge keeps working) so an admin can
+# investigate, but commands that would initiate a trade get a polite
+# refusal instead of corrupting bookkeeping further.
+trading_enabled = True
+
+# Whisper commands that initiate or complete a trade. Anything else
+# (info, help, list, find, listusers, accesslevel admin, ...) keeps
+# working even while trading is disabled.
+TRADE_COMMANDS = {"!money", "!add", "!buy", "!buyitem", "!relist", "!getback"}
+
+
 def process_whisper(nick, msg, mapserv):
     msg = ''.join(c for c in msg if c in utils.allowed_chars)
     if len(msg) == 0:
@@ -90,6 +103,10 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact" + config.admin))
                 mapserv.sendall(whisper(nick, "Though, you still can do the following: "+str(allowed_commands)))
                 return
+
+    if not trading_enabled and broken_string[0] in TRADE_COMMANDS:
+        mapserv.sendall(whisper(nick, "Trading is currently unavailable due to an inventory mismatch. Please contact " + config.admin + "."))
+        return
 
     if msg == "!list":
         # Sends the list of items for sale.
@@ -1088,11 +1105,14 @@ def main():
 
                 errorOccured = player_node.check_inventory(user_tree, sale_tree)
                 if errorOccured:
-                    logger.info(errorOccured)
+                    global trading_enabled
+                    logger.error(errorOccured)
+                    logger.error("Inventory check failed; trading is disabled until this is resolved. The IRC bridge will keep relaying.")
+                    trading_enabled = False
                     shop_broadcaster.stop()
-                    sys.exit(1)
                 else:
                     logger.info("Inventory Check Passed.")
+                    trading_enabled = True
 
             elif packet.is_type(SMSG_TRADE_REQUEST):
                 name = packet.read_string(24)
@@ -1273,9 +1293,10 @@ def main():
 
                 errorOccured = player_node.check_inventory(user_tree, sale_tree)
                 if errorOccured:
-                    logger.info(errorOccured)
+                    logger.error(errorOccured)
+                    logger.error("Post-trade inventory check failed; trading is disabled until this is resolved. The IRC bridge will keep relaying.")
+                    trading_enabled = False
                     shop_broadcaster.stop()
-                    sys.exit(1)
             else:
                 pass
 

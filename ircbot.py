@@ -88,7 +88,7 @@ replace_map = {
 class IRCBot:
 
     def __init__(self):
-        self._client_thread = threading.Thread(target=self.__client_threadfunc, args=())
+        self._client_thread = threading.Thread(target=self.__client_threadfunc, args=(), daemon=True)
         self.conn = None
         self._active = False
         self._ready = False

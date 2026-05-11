@@ -1308,6 +1308,7 @@ def main():
     logger.info("Server disconnect.")
     db_manager.stop()
     shop_broadcaster.stop()
+    ircbot.stop()
     mapserv.close()
 
 if __name__ == '__main__':

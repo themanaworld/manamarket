@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 import irc.client
 import re
 from net.packet_out import whisper
@@ -98,19 +99,48 @@ class IRCBot:
     def __client_threadfunc(self):
         print('__client_threadfunc started')
         self._reactor = irc.client.Reactor()
-        try:
-            self.conn = self._reactor.server().connect(config.irc_server, config.irc_port, config.irc_nick, password=config.irc_password)
-        except irc.client.ServerConnectionError:
-            print(sys.exc_info()[1])
-            raise SystemExit(1)
-
-        self.conn.add_global_handler("welcome", self.__on_connect)
-        self.conn.add_global_handler("join", self.__on_join)
-        self.conn.add_global_handler("pubmsg", self.__on_pubmsg)
-        self.conn.add_global_handler("disconnect", self.__on_disconnect)
-
+        # Outer loop: keep trying to maintain an IRC connection while
+        # the bot is active. The irc library invokes "disconnect"
+        # handlers synchronously from inside process_once(), so we
+        # can't call join() on ourselves from __on_disconnect; instead
+        # __on_disconnect just clears self.conn and we notice that
+        # here on the next iteration.
         while self._active:
-            self._reactor.process_once(timeout=1)
+            if self.conn is None:
+                if not self.__connect_with_backoff():
+                    break  # stop() was called during backoff
+            try:
+                self._reactor.process_once(timeout=1)
+            except Exception as e:
+                # Keep the IRC thread alive on transient errors so a
+                # single hiccup doesn't kill the bridge for the whole
+                # process lifetime.
+                print("IRC reactor error: %s" % e)
+                self.conn = None
+                self._ready = False
+
+    def __connect_with_backoff(self):
+        delay = 1
+        while self._active:
+            try:
+                self.conn = self._reactor.server().connect(
+                    config.irc_server, config.irc_port, config.irc_nick,
+                    password=config.irc_password)
+                self.conn.add_global_handler("welcome", self.__on_connect)
+                self.conn.add_global_handler("join", self.__on_join)
+                self.conn.add_global_handler("pubmsg", self.__on_pubmsg)
+                self.conn.add_global_handler("disconnect", self.__on_disconnect)
+                return True
+            except irc.client.ServerConnectionError as e:
+                print("IRC connect failed: %s (retry in %ds)" % (e, delay))
+                # Sleep in 1s chunks so stop() can interrupt the wait
+                # promptly during shutdown.
+                for _ in range(delay):
+                    if not self._active:
+                        return False
+                    time.sleep(1)
+                delay = min(delay * 2, 60)
+        return False
 
     def __on_connect(self, conn, event):
         print("Connected to IRC on %s:%i" % (config.irc_server, config.irc_port))
@@ -125,7 +155,14 @@ class IRCBot:
         self.broadcastFunc(event.source.nick, event.arguments[0])
 
     def __on_disconnect(self, conn, event):
-        self.stop()
+        # Invoked synchronously from inside the reactor loop on the
+        # IRC thread, so we must not call stop() (which would join
+        # the current thread). Just clear the connection; the outer
+        # loop in __client_threadfunc will reconnect with backoff.
+        message = event.arguments[0] if event.arguments else ""
+        print("Disconnected from IRC: %s" % message)
+        self._ready = False
+        self.conn = None
 
     def isAFK(self, msg):
         lower = msg.lower()
@@ -163,7 +200,10 @@ class IRCBot:
         self._ready = False
         if self._active:
             self._active = False
-            self._client_thread.join()
+            # __on_disconnect runs on the IRC thread itself; guard
+            # against joining ourselves which would raise RuntimeError.
+            if threading.current_thread() is not self._client_thread:
+                self._client_thread.join()
 
 
 if __name__=='__main__':

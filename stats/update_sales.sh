@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /var/lib/manamarket/stats
-python /var/lib/manamarket/stats/process_salelog/main.py /var/lib/manamarket/data/logs/sale.log /var/lib/manamarket/www/manamarket.html
-python /var/lib/manamarket/stats/process_salelog/main_stat.py /var/lib/manamarket/data/logs/sale.log /var/lib/manamarket/www/manamarket_stats.html
-chmod 644 /var/lib/manamarket/www/manamarket.html /var/lib/manamarket/www/manamarket_stats.html
+cd /home/tmw/manamarket/stats
+python3 /home/tmw/manamarket/stats/process_salelog/main.py      /home/tmw/manamarket/data/logs/sale.log /home/tmw/manamarket/www/manamarket.html
+python3 /home/tmw/manamarket/stats/process_salelog/main_stat.py /home/tmw/manamarket/data/logs/sale.log /home/tmw/manamarket/www/manamarket_stats.html
+chmod 644 /home/tmw/manamarket/www/manamarket.html /home/tmw/manamarket/www/manamarket_stats.html

@@ -444,7 +444,7 @@ def process_whisper(nick, msg, mapserv):
             return
 
         if broken_string[1].isdigit() and broken_string[2].isdigit():
-            if int(broken_string[1]) > user.get("accesslevel"):
+            if int(broken_string[1]) > int(user.get("accesslevel")):
                 mapserv.sendall(whisper(nick, "You can't give someone a higher accesslevel than your own."))
                 return
             al = int(broken_string[1])

@@ -183,7 +183,7 @@ def process_whisper(nick, msg, mapserv):
         # Sends help information
         if len(broken_string) == 1:
             mapserv.sendall(whisper(nick, "Welcome to ManaMarket!"))
-            mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid> "))
+            mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid>, !irc <on|off>, !mail <nick> <message>, !lastseen <nick> "))
             mapserv.sendall(whisper(nick, "For a detailed description of each command, type !help <command> e.g. !help !buy"))
             mapserv.sendall(whisper(nick, "For example to purchase an item shown in the list as:"))
             mapserv.sendall(whisper(nick, "[selling] [6] 5 [@@640|Iron Ore@@] for 1000gp each"))

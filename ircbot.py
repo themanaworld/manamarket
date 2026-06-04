@@ -125,7 +125,8 @@ class IRCBot:
             try:
                 self.conn = self._reactor.server().connect(
                     config.irc_server, config.irc_port, config.irc_nick,
-                    password=config.irc_password)
+                    password=config.irc_password,
+                    username=config.irc_user, ircname=config.irc_realname)
                 self.conn.add_global_handler("welcome", self.__on_connect)
                 self.conn.add_global_handler("join", self.__on_join)
                 self.conn.add_global_handler("pubmsg", self.__on_pubmsg)

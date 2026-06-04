@@ -15,4 +15,5 @@ irc_channel = '#themanaworld'
 irc_port = 6667
 irc_user = 'mana'
 irc_nick = 'mana'
+irc_realname = 'ManaMarket IRC bridge'
 irc_password = 'world'

@@ -99,6 +99,15 @@ class IRCBot:
     def __client_threadfunc(self):
         print('__client_threadfunc started')
         self._reactor = irc.client.Reactor()
+        # Handlers live on the reactor, not on the connection, so they
+        # survive reconnects and apply to every connection we create.
+        # Register them exactly once here; doing it per-connect would
+        # stack a fresh copy on each reconnect and relay every message
+        # once per accumulated copy (duplicate chat messages).
+        self._reactor.add_global_handler("welcome", self.__on_connect)
+        self._reactor.add_global_handler("join", self.__on_join)
+        self._reactor.add_global_handler("pubmsg", self.__on_pubmsg)
+        self._reactor.add_global_handler("disconnect", self.__on_disconnect)
         # Outer loop: keep trying to maintain an IRC connection while
         # the bot is active. The irc library invokes "disconnect"
         # handlers synchronously from inside process_once(), so we
@@ -127,10 +136,6 @@ class IRCBot:
                     config.irc_server, config.irc_port, config.irc_nick,
                     password=config.irc_password,
                     username=config.irc_user, ircname=config.irc_realname)
-                self.conn.add_global_handler("welcome", self.__on_connect)
-                self.conn.add_global_handler("join", self.__on_join)
-                self.conn.add_global_handler("pubmsg", self.__on_pubmsg)
-                self.conn.add_global_handler("disconnect", self.__on_disconnect)
                 return True
             except irc.client.ServerConnectionError as e:
                 print("IRC connect failed: %s (retry in %ds)" % (e, delay))

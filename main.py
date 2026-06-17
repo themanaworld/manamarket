@@ -48,6 +48,11 @@ from onlineusers import SqliteDbManager
 from ircbot import IRCBot
 from sdnotify import SystemdNotifier
 
+# Flush logs per line so they reach the systemd journal promptly;
+# stdout is block-buffered otherwise (not a TTY under systemd), which
+# hides connect/disconnect diagnostics until the buffer happens to fill.
+sys.stdout.reconfigure(line_buffering=True)
+
 chatbot = eliza.eliza()
 shop_broadcaster = utils.Broadcast()
 trader_state = utils.TraderState()

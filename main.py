@@ -205,42 +205,59 @@ def process_whisper(nick, msg, mapserv):
                     mapserv.sendall(whisper(nick, "When you just want to know, which items you have given me or how much money I have for you can whisper me !info"))
                     mapserv.sendall(whisper(nick,"If you want to get back an unsold item, whisper me !getback <uid>"))
 
+                if int(user.get('accesslevel')) >= 10:
+                    mapserv.sendall(whisper(nick,"---"))
+                    mapserv.sendall(whisper(nick, "You have moderator access. You can also use: !listusers, !adduser <access level> <slots> <name>"))
+
                 if int(user.get('accesslevel')) == 20:
                     mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))
-                    mapserv.sendall(whisper(nick, "You also have access to the following commands: !listusers, !setslots <slots> <name>, !setaccess <access level > <name>, !adduser <access level> <slot> <name>"))
+                    mapserv.sendall(whisper(nick, "As an admin you can also use: !setslots <slots> <name>, !setaccess <access level> <name>, !removeuser <name>"))
 
         elif len(broken_string) == 2:
-            if broken_string[1] == '!buy':
-                mapserv.sendall(whisper(nick, "!buy <amount> <uid> - Request the purchase of an item or items."))
-            elif broken_string[1] == '!list':
-                mapserv.sendall(whisper(nick, "!list - Displays a list of all items for sale."))
-            elif broken_string[1] == '!find':
-                mapserv.sendall(whisper(nick, "!find <id> or <Item Name> - Simple search to locate an item."))
-            elif broken_string[1] == '!add':
-                mapserv.sendall(whisper(nick, "!add <amount> <price> <Item Name> - Add an item to the sell list (requires that you have an account)."))
-            elif broken_string[1] == '!money':
-                mapserv.sendall(whisper(nick, "!money - Allows you to collect money for any sales made on your behalf."))
-            elif broken_string[1] == '!relist':
-                mapserv.sendall(whisper(nick, "!relist <uid> - Allows you to relist an item which has expired."))
-            elif broken_string[1] == '!info':
-                mapserv.sendall(whisper(nick, "!info - Displays basic information about your account."))
-            elif broken_string[1] == '!getback':
-                mapserv.sendall(whisper(nick, "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell."))
-            elif broken_string[1] == '!lastseen':
-                mapserv.sendall(whisper(nick, "!lastseen <nick> - Show when <nick> was online the last time."))
-            elif broken_string[1] == '!mail':
-                mapserv.sendall(whisper(nick, "!mail <nick> <message> - Send a message to <nick>."))
-            elif broken_string[1] == '!irc':
-                mapserv.sendall(whisper(nick, "!irc <on|off> - Enable/disable IRC mode (the channel is also bridged to Discord)."))
-            elif user != -10:
-                if int(user.get('accesslevel')) >= 10 and broken_string[1] == '!listusers':
-                    mapserv.sendall(whisper(nick, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"))
-                elif int(user.get('accesslevel')) >= 10 and broken_string[1] == '!adduser':
-                    mapserv.sendall(whisper(nick, "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."))
-                elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setslots':
-                    mapserv.sendall(whisper(nick, "!setslots <slots> <name> - Sets the number of slots available to a given user."))
-                elif int(user.get('accesslevel')) == 20 and broken_string[1] == '!setaccess':
-                    mapserv.sendall(whisper(nick, "!setaccess <access level> <name> - Sets access level for the player: -1 is blocked, 5 is seller and 20 is admin" ))
+            # Accept both "!help !buy" and "!help buy".
+            cmd = broken_string[1]
+            if not cmd.startswith('!'):
+                cmd = '!' + cmd
+            accesslevel = int(user.get('accesslevel')) if user != -10 else 0
+            help_text = None
+
+            if cmd == '!buy':
+                help_text = "!buy <amount> <uid> - Request the purchase of an item or items."
+            elif cmd == '!list':
+                help_text = "!list - Displays a list of all items for sale."
+            elif cmd == '!find':
+                help_text = "!find <id> or <Item Name> - Simple search to locate an item."
+            elif cmd == '!add':
+                help_text = "!add <amount> <price> <Item Name> - Add an item to the sell list (requires that you have an account)."
+            elif cmd == '!money':
+                help_text = "!money - Allows you to collect money for any sales made on your behalf."
+            elif cmd == '!relist':
+                help_text = "!relist <uid> - Allows you to relist an item which has expired."
+            elif cmd == '!info':
+                help_text = "!info - Displays basic information about your account."
+            elif cmd == '!getback':
+                help_text = "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell."
+            elif cmd == '!lastseen':
+                help_text = "!lastseen <nick> - Show when <nick> was online the last time."
+            elif cmd == '!mail':
+                help_text = "!mail <nick> <message> - Send a message to <nick>."
+            elif cmd == '!irc':
+                help_text = "!irc <on|off> - Enable/disable IRC mode (the channel is also bridged to Discord)."
+            elif cmd == '!listusers' and accesslevel >= 10:
+                help_text = "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"
+            elif cmd == '!adduser' and accesslevel >= 10:
+                help_text = "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."
+            elif cmd == '!setslots' and accesslevel == 20:
+                help_text = "!setslots <slots> <name> - Sets the number of slots available to a given user."
+            elif cmd == '!setaccess' and accesslevel == 20:
+                help_text = "!setaccess <access level> <name> - Sets access level for the player: -1 is blocked, 5 is seller and 20 is admin"
+            elif cmd == '!removeuser' and accesslevel == 20:
+                help_text = "!removeuser <name> - Removes a user from the bot, freeing their slots."
+
+            if help_text is not None:
+                mapserv.sendall(whisper(nick, help_text))
+            else:
+                mapserv.sendall(whisper(nick, "No help available for '" + cmd + "'. Type !help for a list of commands."))
     elif msg == "!money":
         # Trades any money earned through item sales.
         if user == -10:

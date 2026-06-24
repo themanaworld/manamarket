@@ -730,11 +730,15 @@ def process_whisper(nick, msg, mapserv):
             if not ircbot.isAFK(msg): # if not an AFK message
                 ircbot.send(nick, msg)
                 db_manager.forEachOnline(broadcast_if_irc_on, nick, "TMW.%s: %s" % (nick, msg))
+    elif broken_string[0].startswith('!'):
+        # A failed command attempt from a non-relay user: give a helpful hint
+        # instead of feeding the typo to the chatbot. Relay users fall through
+        # the branch above so their Elanore IRC commands still reach the channel.
+        mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
     else:
         response = chatbot.respond(msg)
         logger.info("Bot Response: "+response)
         mapserv.sendall(whisper(nick, response))
-        #mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
 
 def broadcast_from_irc(nick, msg):
     db_manager.forEachOnline(broadcast_if_irc_on, "IRC", u"IRC.%s: %s" % (nick, msg))

@@ -29,6 +29,8 @@ import socket
 import sys
 import time
 import string
+from collections import namedtuple
+from dataclasses import dataclass
 
 try:
     import config
@@ -83,6 +85,547 @@ trading_enabled = True
 TRADE_COMMANDS = {"!money", "!add", "!buy", "!buyitem", "!relist", "!getback"}
 
 
+# --- Command dispatch -------------------------------------------------
+#
+# Commands are small handlers registered in COMMANDS by the @command
+# decorator. The dispatcher (process_whisper, at the end) sanitises the
+# message, applies the shared gates (blocked user, trading frozen,
+# minimum access level), then calls the handler with a Ctx. Handlers
+# talk back through ctx.reply() and raise Reply(...) to bail out with a
+# message, which keeps each one focused on its own logic.
+
+class Reply(Exception):
+    """Raised by a handler to send one message and stop processing."""
+    def __init__(self, message):
+        self.message = message
+
+
+@dataclass
+class Ctx:
+    nick: str
+    user: object        # user XML element, or None when unregistered
+    args: list          # message words after the command
+    mapserv: object
+    msg: str            # the full sanitised whisper
+
+    def reply(self, message):
+        self.mapserv.sendall(whisper(self.nick, message))
+
+    @property
+    def access(self):
+        return int(self.user.get("accesslevel")) if self.user is not None else 0
+
+
+Command = namedtuple("Command", ["fn", "access", "registered"])
+COMMANDS = {}
+
+
+def command(*names, access=0, registered=False):
+    """Register a handler under one or more command words. `access` is the
+    minimum level the dispatcher enforces before the handler runs;
+    `registered` requires the user to exist in the user tree."""
+    def register(fn):
+        for name in names:
+            COMMANDS[name] = Command(fn, access, registered)
+        return fn
+    return register
+
+
+def listing_active(elem):
+    return time.time() - float(elem.get('add_time')) < config.relist_time
+
+
+def format_listing(elem, tag="selling"):
+    name = ItemDB.getItem(int(elem.get("itemId"))).name
+    return (f"[{tag}] [{elem.get('uid')}] {elem.get('amount')} "
+            f"[@@{elem.get('itemId')}|{name}@@] for {elem.get('price')}gp each")
+
+
+def find_sale(uid):
+    item = sale_tree.get_uid(uid)
+    return None if item == -10 else item
+
+
+def find_user(name):
+    user = user_tree.get_user(name)
+    return None if user == -10 else user
+
+
+def hold_trade_lock(ctx):
+    if not trader_state.Trading.acquire(False):
+        raise Reply("I'm currently busy with a trade.  Try again shortly")
+
+
+def begin_trade(ctx, quote=None):
+    """Send a trade request to the requesting player, or apologise. The
+    caller must have populated trader_state and acquired the lock."""
+    player_id = beingManager.findId(ctx.nick)
+    if player_id == -10:
+        ctx.reply("Where are you?!?  I can't trade with somebody who isn't here!")
+        trader_state.reset()
+        return
+    ctx.mapserv.sendall(trade_request(player_id))
+    trader_state.timer = time.time()
+    if quote is not None:
+        ctx.reply(quote)
+
+
+@command("!list")
+def cmd_list(ctx):
+    ctx.reply("The following items are on sale:" if len(sale_tree.root) != 0
+              else "No items for sale.")
+    for elem in sale_tree.root:
+        if listing_active(elem):
+            ctx.reply(format_listing(elem))
+
+
+@command("!selllist")
+def cmd_selllist(ctx):
+    # Support for 4144's shop (Sell list).
+    data = '\302\202B1'
+    for elem in sale_tree.root:
+        if listing_active(elem):
+            data += utils.encode_str(int(elem.get("itemId")), 2)
+            data += utils.encode_str(int(elem.get("price")), 4)
+            data += utils.encode_str(int(elem.get("amount")), 3)
+    ctx.reply(data.encode('latin-1'))
+
+
+@command("!buyitem")
+def cmd_buyitem(ctx):
+    # 4144 buy command (traditional 4144 shop).
+    match ctx.args:
+        case [item_id, price, amount] if item_id.isdigit() and price.isdigit() and amount.isdigit():
+            item_id, price, amount = int(item_id), int(price), int(amount)
+            for elem in sale_tree.root:
+                if (int(elem.get('amount')) >= amount and int(elem.get('price')) == price
+                        and int(elem.get('itemId')) == item_id):
+                    process_whisper(ctx.nick, f"!buy {amount} {elem.get('uid')}", ctx.mapserv)
+                    return
+            ctx.reply("Item not found. Please check and try again.")
+        case [_, _, _]:
+            pass  # four-token form but not all numeric: a 4144 quirk, stay silent
+        case _:
+            ctx.reply("Syntax incorrect")
+
+
+@command("!info")
+def cmd_info(ctx):
+    # Send information related to a player.
+    if ctx.user is None:
+        ctx.reply("Your current access level is 0. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]")
+        return
+    if ctx.access <= 0:
+        return  # registered but level 0: nothing to show
+    ctx.reply(f"Your current access level is {ctx.user.get('accesslevel')}.")
+    mine = [elem for elem in sale_tree.root if elem.get('name') == ctx.nick]
+    if mine:
+        ctx.reply("Your have the following items for sale:")
+        for elem in mine:
+            ctx.reply(format_listing(elem, "selling" if listing_active(elem) else "expired"))
+    else:
+        ctx.reply("You have no items for sale.")
+    ctx.reply(f"You have {int(ctx.user.get('money'))}gp to collect.")
+    free = int(ctx.user.get('stalls')) - int(ctx.user.get('used_stalls'))
+    ctx.reply(f"You have {free} free slots.")
+
+
+@command("!money", registered=True)
+def cmd_money(ctx):
+    # Trades any money earned through item sales.
+    money = int(ctx.user.get('money'))
+    if money == 0:
+        ctx.reply("You have no money to collect.")
+        return
+    hold_trade_lock(ctx)
+    trader_state.money = ctx.nick
+    begin_trade(ctx)
+
+
+@command("!help")
+def cmd_help(ctx):
+    match ctx.args:
+        case []:
+            ctx.reply("Welcome to ManaMarket!")
+            ctx.reply("The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid>, !irc <on|off>, !mail <nick> <message>, !lastseen <nick> ")
+            ctx.reply("For a detailed description of each command, type !help <command> e.g. !help !buy")
+            ctx.reply("For example to purchase an item shown in the list as:")
+            ctx.reply("[selling] [6] 5 [@@640|Iron Ore@@] for 1000gp each")
+            ctx.reply("you would type /whisper ManaMarket !buy 1 6")
+            ctx.reply("This will purchase one of item 6 (Iron Ore).")
+            if ctx.user is not None:
+                if ctx.access >= 5:
+                    ctx.reply("---")
+                    ctx.reply("Ah, you have sellers access level. How lovely!")
+                    ctx.reply("Use !add to tell me which items I should trade for you:")
+                    ctx.reply("For example !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp")
+                    ctx.reply("Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp")
+                    ctx.reply("When you just want to know, which items you have given me or how much money I have for you can whisper me !info")
+                    ctx.reply("If you want to get back an unsold item, whisper me !getback <uid>")
+                if ctx.access >= 10:
+                    ctx.reply("---")
+                    ctx.reply("You have moderator access. You can also use: !listusers, !adduser <access level> <slots> <name>")
+                if ctx.access == 20:
+                    ctx.reply("You're my master! How should I serve you?")
+                    ctx.reply("As an admin you can also use: !setslots <slots> <name>, !setaccess <access level> <name>, !removeuser <name>")
+        case [topic]:
+            # Accept both "!help !buy" and "!help buy".
+            cmd = topic if topic.startswith('!') else '!' + topic
+            texts = {
+                '!buy': "!buy <amount> <uid> - Request the purchase of an item or items.",
+                '!list': "!list - Displays a list of all items for sale.",
+                '!find': "!find <id> or <Item Name> - Simple search to locate an item.",
+                '!add': "!add <amount> <price> <Item Name> - Add an item to the sell list (requires that you have an account).",
+                '!money': "!money - Allows you to collect money for any sales made on your behalf.",
+                '!relist': "!relist <uid> - Allows you to relist an item which has expired.",
+                '!info': "!info - Displays basic information about your account.",
+                '!getback': "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell.",
+                '!lastseen': "!lastseen <nick> - Show when <nick> was online the last time.",
+                '!mail': "!mail <nick> <message> - Send a message to <nick>.",
+                '!irc': "!irc <on|off> - Enable/disable IRC mode (the channel is also bridged to Discord).",
+            }
+            gated = {
+                '!listusers': (10, "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"),
+                '!adduser': (10, "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."),
+                '!setslots': (20, "!setslots <slots> <name> - Sets the number of slots available to a given user."),
+                '!setaccess': (20, "!setaccess <access level> <name> - Sets access level for the player: -1 is blocked, 5 is seller and 20 is admin"),
+                '!removeuser': (20, "!removeuser <name> - Removes a user from the bot, freeing their slots."),
+            }
+            help_text = texts.get(cmd)
+            if help_text is None and cmd in gated:
+                need, text = gated[cmd]
+                if ctx.access >= need:
+                    help_text = text
+            if help_text is not None:
+                ctx.reply(help_text)
+            else:
+                ctx.reply("No help available for '" + cmd + "'. Type !help for a list of commands.")
+        case _:
+            pass  # !help with extra arguments: stay silent
+
+
+@command("!find")
+def cmd_find(ctx):
+    # Locate an item by id or by (partial) name - !find <id> or <item name>.
+    if not ctx.args:
+        raise Reply("Syntax incorrect.")
+    term = " ".join(ctx.args)
+    by_id = term.isdigit()
+    found = False
+    for elem in sale_tree.root:
+        if not listing_active(elem):
+            continue
+        name = ItemDB.getItem(int(elem.get("itemId"))).name
+        if (by_id and int(elem.get("itemId")) == int(term)) or \
+           (not by_id and term.lower() in name.lower()):
+            ctx.reply(format_listing(elem))
+            found = True
+    if not found:
+        ctx.reply("Item not found.")
+
+
+@command("!tradestate", access=20)
+def cmd_tradestate(ctx):
+    ctx.reply("I'm busy with a trade." if trader_state.Trading.locked() else "I'm free.")
+
+
+@command("!identify", access=10)
+def cmd_identify(ctx):
+    if len(ctx.args) != 1:
+        raise Reply("Syntax incorrect.")
+    (uid,) = ctx.args
+    if not uid.isdigit():
+        return  # a non-numeric uid is silently ignored
+    item = find_sale(int(uid))
+    if item is None:
+        raise Reply("Item not found. Please check the uid number and try again.")
+    weight = ItemDB.item_names[int(item.get('itemId'))].weight * int(item.get("amount"))
+    ctx.reply("That item/s belongs to: " + item.get("name"))
+    ctx.reply(f"The weight used is: {weight}/{player_node.MaxWEIGHT}")
+
+
+@command("!listusers", access=10)
+def cmd_listusers(ctx):
+    data = ''
+    total_money = total_reserved = total_used = count = 0
+    for u in user_tree.root:
+        count += 1
+        slots, used, money = u.get('stalls'), u.get('used_stalls'), u.get('money')
+        total_reserved += int(slots)
+        total_used += int(used)
+        total_money += int(money)
+        data += f"{u.get('name')} ({u.get('accesslevel')}) {used}/{slots} {money}gp, "
+        if len(data) > 400:
+            ctx.reply(data[:-2] + ".")
+            data = ''
+    if data:
+        ctx.reply(data[:-2] + ".")
+    ctx.reply(f"Number of users:{count}, Sale slots used: {total_used}/{total_reserved}, "
+              f"Total Money: {total_money}, Char slots used: {len(player_node.inventory)}, "
+              f"Weight Used: {player_node.WEIGHT}/{player_node.MaxWEIGHT}")
+
+
+@command("!setslots", access=20)
+def cmd_setslots(ctx):
+    # Change the number of slots a user has - !setslots <slots> <name>.
+    if len(ctx.args) < 2:
+        raise Reply("Syntax incorrect.")
+    slots, *name_parts = ctx.args
+    if not slots.isdigit():
+        raise Reply("Syntax incorrect.")
+    slots = int(slots)
+    name = " ".join(name_parts)
+    target = find_user(name)
+    if target is None:
+        raise Reply("User not found, check and try again.")
+    target.set('stalls', str(slots))
+    ctx.reply(f"Slots changed: {name} {slots}")
+    tradey.saveData(f"User: {name}, Slots changed: {slots}")
+    user_tree.save()
+
+
+@command("!setaccess", access=20)
+def cmd_setaccess(ctx):
+    # Change someone's access level - !setaccess <access level> <name>.
+    if len(ctx.args) < 2:
+        raise Reply("Syntax incorrect.")
+    level, *name_parts = ctx.args
+    if not ((level[0] == '-' and level[1:].isdigit()) or level.isdigit()):
+        raise Reply("Syntax incorrect.")
+    new_level = int(level)
+    name = " ".join(name_parts)
+    target = find_user(name)
+    if target is None:
+        raise Reply("User not found, check and try again.")
+    if int(target.get('accesslevel')) < ctx.access and new_level <= ctx.access:
+        target.set('accesslevel', str(new_level))
+        ctx.reply(f"Access level changed:{name} ({new_level}).")
+        user_tree.save()
+        tradey.saveData(f"User: {name}, Set Access Level: {new_level}")
+    else:
+        raise Reply("You don't have the correct permissions.")
+
+
+@command("!adduser", access=10)
+def cmd_adduser(ctx):
+    # Give a user access to the bot - !adduser <access level> <slots> <name>.
+    if len(ctx.args) < 2:
+        raise Reply("Syntax incorrect.")
+    al, slots, *name_parts = ctx.args
+    if not (al.isdigit() and slots.isdigit()):
+        raise Reply("Syntax incorrect.")
+    if int(al) > ctx.access:
+        raise Reply("You can't give someone a higher accesslevel than your own.")
+    al, slots = int(al), int(slots)
+    player_name = " ".join(name_parts)
+    target = find_user(player_name)
+    if target is None:
+        user_tree.add_user(player_name, slots, al)
+    else:
+        target.set("accesslevel", str(al))
+        target.set("stalls", str(slots))
+    ctx.reply(f"User Added with {slots} slots.")
+    tradey.saveData(f"User Added: {player_name}, Slots: {slots}, Access Level: {al}")
+
+
+@command("!add")
+def cmd_add(ctx):
+    # Add an item for sale - !add <amount> <price> <item name>.
+    if ctx.user is None:
+        raise Reply("You are unable to add items. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]")
+    if len(ctx.args) < 2:
+        raise Reply("Syntax incorrect.")
+    if ctx.access < 5:
+        raise Reply("You are unable to add items.")
+    if int(ctx.user.get("used_stalls")) >= int(ctx.user.get("stalls")):
+        raise Reply("You have no free slots.  You may remove an item or wait for something to be sold.")
+    amount, price, *name_parts = ctx.args
+    if not (amount.isdigit() and price.isdigit()):
+        raise Reply("Syntax incorrect.")
+    amount, price = int(amount), int(price)
+    item_name = utils.normalize_item_name(" ".join(name_parts))
+    item_id = ItemDB.findId(item_name)
+    if item_id == -10:
+        raise Reply("Item not found, check spelling.")
+    weight = ItemDB.item_names[item_id].weight * amount
+    if item_id in config.nosell:
+        raise Reply("That item can't be added to ManaMarket, as its too heavy.")
+    if int(weight) + player_node.WEIGHT > player_node.MaxWEIGHT:
+        raise Reply("I've not got enough room left to carry those. Please try again later. ")
+    if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:
+        raise Reply("You can only add one piece of equipment per slot.")
+    if price == 0 or price > 50000000:
+        raise Reply("Please use a valid price between 1-50000000gp.")
+    if amount == 0:
+        raise Reply("You can't add 0 of an item.")
+    order = Item()
+    order.player = ctx.nick
+    order.get = 1  # 1 = get, 0 = give
+    order.id = item_id
+    order.amount = amount
+    order.price = price
+    hold_trade_lock(ctx)
+    trader_state.item = order
+    begin_trade(ctx)
+
+
+@command("!buy")
+def cmd_buy(ctx):
+    # Buy a given quantity of an item - !buy <amount> <uid>.
+    match ctx.args:
+        case [amount, uid_str] if amount.isdigit() and uid_str.isdigit():
+            amount, uid = int(amount), int(uid_str)
+            item = find_sale(uid)
+            if item is None:
+                raise Reply("Item not found.  Please check the uid number and try again.")
+            if amount > int(item.get("amount")):
+                raise Reply("I do not have that many.")
+            if item.get("name") == ctx.nick:
+                raise Reply("You can not buy your own items. To get back the item whisper me !getback " + uid_str)
+            order = Item()
+            order.get = 0  # 1 = get, 0 = give
+            order.player = ctx.nick
+            order.id = int(item.get("itemId"))
+            order.uid = uid
+            order.amount = amount
+            order.price = int(item.get("price"))
+            hold_trade_lock(ctx)
+            trader_state.item = order
+            begin_trade(ctx, quote=f"That will be {order.price * order.amount}gp.")
+        case _:
+            raise Reply("Syntax incorrect.")
+
+
+@command("!removeuser", access=20)
+def cmd_removeuser(ctx):
+    # Remove a user, freeing their slots - !removeuser <player name>.
+    if not ctx.args:
+        raise Reply("Syntax incorrect.")
+    player_name = " ".join(ctx.args)
+    if user_tree.remove_user(player_name) == 1:
+        ctx.reply("User Removed.")
+        tradey.saveData(f"User Removed: {player_name}")
+    else:
+        ctx.reply("User removal failed. Please check spelling.")
+
+
+@command("!relist", access=5)
+def cmd_relist(ctx):
+    # Relist an item which has expired - !relist <uid>.
+    if len(ctx.args) != 1:
+        raise Reply("Syntax incorrect.")
+    (uid_str,) = ctx.args
+    if not uid_str.isdigit():
+        raise Reply("Syntax incorrect.")
+    uid = int(uid_str)
+    item = find_sale(uid)
+    if item is None:
+        raise Reply("Item not found.  Please check the uid number and try again.")
+    if item.get('name') != ctx.nick:
+        raise Reply("That doesn't belong to you!")
+    relisted = int(item.get('relisted'))
+    if relisted >= 3:
+        raise Reply(f"This item can no longer be relisted. Please collect it using !getback {uid}.")
+    item.set('add_time', str(time.time()))
+    item.set('relisted', str(relisted + 1))
+    sale_tree.save()
+    ctx.reply("The item has been successfully relisted.")
+    user_tree.get_user(ctx.nick).set('last_use', str(time.time()))
+    user_tree.save()
+
+
+@command("!getback")
+def cmd_getback(ctx):
+    # Trade an unsold item back to its owner - !getback <uid>. There is no
+    # access-level gate: the ownership check below (item belongs to nick)
+    # is the real guard, so anyone registered can reclaim their own items,
+    # including a demoted seller who still has stock listed.
+    if ctx.user is None or len(ctx.args) != 1:
+        raise Reply("Syntax incorrect.")
+    (uid_str,) = ctx.args
+    if not uid_str.isdigit():
+        return  # a non-numeric uid is silently ignored
+    uid = int(uid_str)
+    item = find_sale(uid)
+    if item is None:
+        raise Reply("Item not found.  Please check the uid number and try again.")
+    if item.get('name') != ctx.nick:
+        raise Reply("That doesn't belong to you!")
+    order = Item()
+    order.get = 0
+    order.player = ctx.nick
+    order.id = int(item.get("itemId"))
+    order.uid = uid
+    order.amount = int(item.get("amount"))
+    order.price = 0
+    hold_trade_lock(ctx)
+    trader_state.item = order
+    begin_trade(ctx)
+
+
+@command("!lastseen")
+def cmd_lastseen(ctx):
+    who = ctx.msg[10:].strip()
+    if not who:
+        ctx.reply("Usage: !lastseen <nick>")
+    else:
+        ctx.reply(db_manager.get_lastseen_info(who))
+
+
+@command("!mail")
+def cmd_mail(ctx):
+    if ctx.user is None:
+        raise Reply("Your current access level is 0. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]")
+    to_, body = utils.parse_mail_cmdargs(ctx.msg[6:].strip())
+    if to_ == "" or body == "":
+        raise Reply('Usage: !mail <nick> <message> OR !mail "nick with spaces" <message>')
+    db_manager.send_mail(ctx.nick, to_, body)
+    ctx.reply(f'Message to "{to_}" sent')
+
+
+@command("!irc")
+def cmd_irc(ctx):
+    match ctx.args:
+        case ["on", *_]:
+            if ctx.user is None:
+                user_tree.add_user(ctx.nick, 0, 0)
+            target = user_tree.get_user(ctx.nick)
+            target.set("irc", "on")
+            user_tree.save()
+            tradey.saveData(f"IRC relay enabled for {ctx.nick}")
+            ctx.reply("IRC relay mode is now enabled (the channel is also bridged to Discord).")
+        case ["off", *_]:
+            if ctx.user is not None:
+                if (int(ctx.user.get("accesslevel")) == 0 and int(ctx.user.get("stalls")) == 0
+                        and int(ctx.user.get("money")) == 0):
+                    user_tree.remove_user(ctx.nick)
+                    tradey.saveData(f"Stub User Removed: {ctx.nick}")
+                else:
+                    ctx.user.set("irc", "off")
+                    user_tree.save()
+                    tradey.saveData(f"IRC relay disabled for {ctx.nick}")
+            ctx.reply("IRC relay mode is now disabled.")
+        case []:
+            ctx.reply("Incorrect syntax.")
+        case _:
+            pass  # unknown !irc subcommand: stay silent, as before
+
+
+def relay_or_hint(ctx, name):
+    """Not a known command: relay to IRC for opted-in users, hint at a
+    mistyped command, or hand the message to the chatbot."""
+    if ctx.user is not None and ctx.user.get("irc") == "on":
+        if not ircbot.isAFK(ctx.msg):  # don't relay AFK messages
+            ircbot.send(ctx.nick, ctx.msg)
+            db_manager.forEachOnline(broadcast_if_irc_on, ctx.nick, f"TMW.{ctx.nick}: {ctx.msg}")
+    elif name.startswith('!'):
+        ctx.reply("Command not recognised, please whisper me !help for a full list of commands.")
+    else:
+        response = chatbot.respond(ctx.msg)
+        logger.info("Bot Response: " + response)
+        ctx.reply(response)
+
+
 def process_whisper(nick, msg, mapserv):
     msg = ''.join(c for c in msg if c in utils.allowed_chars)
     if len(msg) == 0:
@@ -92,670 +635,44 @@ def process_whisper(nick, msg, mapserv):
     if nick == "guild":
         return
 
-    user = user_tree.get_user(nick)
-    broken_string = msg.split()
+    parts = msg.split()
+    if len(parts) == 0:
+        return
+    name, *args = parts
 
-    if len(broken_string) == 0:
+    raw_user = user_tree.get_user(nick)
+    user = None if raw_user == -10 else raw_user
+    ctx = Ctx(nick=nick, user=user, args=args, mapserv=mapserv, msg=msg)
+
+    if user is not None and ctx.access == -1:  # a user blocked for abuse
+        if int(user.get("used_stalls")) == 0 and int(user.get("money")) == 0:
+            ctx.reply("You can no longer use the bot. If you feel this is in error, please contact" + config.admin)
+            return
+        allowed_commands = ['!money', '!help', '!getback', '!info']
+        if name not in allowed_commands:
+            ctx.reply("Your access level has been set to blocked! If you feel this is in error, please contact" + config.admin)
+            ctx.reply("Though, you still can do the following: " + str(allowed_commands))
+            return
+
+    if not trading_enabled and name in TRADE_COMMANDS:
+        ctx.reply("Trading is currently unavailable due to an inventory mismatch. Please contact " + config.admin + ".")
         return
 
-    if user != -10:
-        if int(user.get("accesslevel")) == -1: # A user who has been blocked for abuse.
-            if int(user.get("used_stalls")) == 0 and int(user.get("money")) == 0:
-                mapserv.sendall(whisper(nick, "You can no longer use the bot. If you feel this is in error, please contact" + config.admin))
-                return
-            allowed_commands = ['!money', '!help', '!getback', '!info' ]
-            if not broken_string[0] in allowed_commands:
-                mapserv.sendall(whisper(nick, "Your access level has been set to blocked! If you feel this is in error, please contact" + config.admin))
-                mapserv.sendall(whisper(nick, "Though, you still can do the following: "+str(allowed_commands)))
-                return
-
-    if not trading_enabled and broken_string[0] in TRADE_COMMANDS:
-        mapserv.sendall(whisper(nick, "Trading is currently unavailable due to an inventory mismatch. Please contact " + config.admin + "."))
+    cmd = COMMANDS.get(name)
+    if cmd is None:
+        relay_or_hint(ctx, name)
+        return
+    if cmd.registered and ctx.user is None:
+        ctx.reply("You don't have the correct permissions.")
+        return
+    if cmd.access > 0 and ctx.access < cmd.access:
+        ctx.reply("You don't have the correct permissions.")
         return
 
-    if msg == "!list":
-        # Sends the list of items for sale.
-        if len(sale_tree.root) != 0:
-            mapserv.sendall(whisper(nick, "The following items are on sale:"))
-        else:
-            mapserv.sendall(whisper(nick, "No items for sale."))
-
-        for elem in sale_tree.root:
-            if time.time() - float(elem.get('add_time')) < config.relist_time: # Check if an items time is up.
-                msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + \
-                elem.get("itemId") + "|" + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
-                mapserv.sendall(whisper(nick, msg))
-
-    elif broken_string[0] == '!selllist':
-        # Support for 4144's shop (Sell list)
-        data = '\302\202B1'
-
-        for elem in sale_tree.root:
-            if time.time() - float(elem.get('add_time')) < config.relist_time:
-                data += utils.encode_str(int(elem.get("itemId")), 2)
-                data += utils.encode_str(int(elem.get("price")), 4)
-                data += utils.encode_str(int(elem.get("amount")), 3)
-        mapserv.sendall(whisper(nick, data.encode('latin-1')))
-
-    elif broken_string[0] == '!buyitem':
-        # 4144 buy command
-        if len(broken_string) == 4:
-            if broken_string[1].isdigit() and broken_string[2].isdigit() and broken_string[3].isdigit():
-                # Traditional 4144 shop.
-                item_id = int(broken_string[1])
-                price = int(broken_string[2])
-                amount = int(broken_string[3])
-                for elem in sale_tree.root:
-                    if int(elem.get('amount')) >= amount and int(elem.get('price')) == price and int(elem.get('itemId')) == item_id:
-                        process_whisper(nick, '!buy ' + str(amount) + " " + elem.get('uid'), mapserv)
-                        return
-                mapserv.sendall(whisper(nick, "Item not found. Please check and try again."))
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect"))
-
-    elif msg == "!info":
-        # Send information related to a player.
-        if user == -10:
-            mapserv.sendall(whisper(nick, "Your current access level is 0. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]"))
-        elif int(user.get('accesslevel')) > 0:
-            mapserv.sendall(whisper(nick, "Your current access level is " + user.get('accesslevel') + "."))
-            items_for_sale = False
-            for elem in sale_tree.root:
-                if elem.get('name') == nick:
-                    if time.time() - float(elem.get('add_time')) > config.relist_time:
-                        msg = "[expired] ["
-                    else:
-                        msg = "[selling] ["
-
-                    msg += elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" + \
-                        ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
-
-                    if items_for_sale == False:
-                        mapserv.sendall(whisper(nick, "Your have the following items for sale:"))
-                        items_for_sale = True
-
-                    mapserv.sendall(whisper(nick, msg))
-
-            if items_for_sale == False:
-                mapserv.sendall(whisper(nick, "You have no items for sale."))
-
-            money = int(user.get('money'))
-            mapserv.sendall(whisper(nick, "You have " + str(money) + "gp to collect."))
-            stall_msg = "You have " + str(int(user.get('stalls')) - int(user.get('used_stalls'))) + " free slots."
-            mapserv.sendall(whisper(nick, stall_msg))
-
-    elif broken_string[0] == "!help":
-        # Sends help information
-        if len(broken_string) == 1:
-            mapserv.sendall(whisper(nick, "Welcome to ManaMarket!"))
-            mapserv.sendall(whisper(nick, "The basic commands for the bot are: !list, !find <id> or <Item Name>, !buy <amount> <uid>, !add <amount> <price> <Item Name>, !money, !relist <uid>, !info, !getback <uid>, !irc <on|off>, !mail <nick> <message>, !lastseen <nick> "))
-            mapserv.sendall(whisper(nick, "For a detailed description of each command, type !help <command> e.g. !help !buy"))
-            mapserv.sendall(whisper(nick, "For example to purchase an item shown in the list as:"))
-            mapserv.sendall(whisper(nick, "[selling] [6] 5 [@@640|Iron Ore@@] for 1000gp each"))
-            mapserv.sendall(whisper(nick, "you would type /whisper ManaMarket !buy 1 6" ))
-            mapserv.sendall(whisper(nick, "This will purchase one of item 6 (Iron Ore)."))
-
-            if user != -10:
-                if int(user.get('accesslevel')) >= 5:
-                    mapserv.sendall(whisper(nick,"---"))
-                    mapserv.sendall(whisper(nick, "Ah, you have sellers access level. How lovely!")) # the first words the ticket seller told me when i was in london for the first time. How lovely!
-                    mapserv.sendall(whisper(nick, "Use !add to tell me which items I should trade for you:"))
-                    mapserv.sendall(whisper(nick, "For example !add 10 1000 Iron Ore would tell me to sell 10 [@@640|Iron Ore@@] for a price of 1000 gp"))
-                    mapserv.sendall(whisper(nick, "Later you can whisper me !money to get back your money. In the example given, I'd give you 10*1000 = 10000gp"))
-                    mapserv.sendall(whisper(nick, "When you just want to know, which items you have given me or how much money I have for you can whisper me !info"))
-                    mapserv.sendall(whisper(nick,"If you want to get back an unsold item, whisper me !getback <uid>"))
-
-                if int(user.get('accesslevel')) >= 10:
-                    mapserv.sendall(whisper(nick,"---"))
-                    mapserv.sendall(whisper(nick, "You have moderator access. You can also use: !listusers, !adduser <access level> <slots> <name>"))
-
-                if int(user.get('accesslevel')) == 20:
-                    mapserv.sendall(whisper(nick, "You're my master! How should I serve you?"))
-                    mapserv.sendall(whisper(nick, "As an admin you can also use: !setslots <slots> <name>, !setaccess <access level> <name>, !removeuser <name>"))
-
-        elif len(broken_string) == 2:
-            # Accept both "!help !buy" and "!help buy".
-            cmd = broken_string[1]
-            if not cmd.startswith('!'):
-                cmd = '!' + cmd
-            accesslevel = int(user.get('accesslevel')) if user != -10 else 0
-            help_text = None
-
-            if cmd == '!buy':
-                help_text = "!buy <amount> <uid> - Request the purchase of an item or items."
-            elif cmd == '!list':
-                help_text = "!list - Displays a list of all items for sale."
-            elif cmd == '!find':
-                help_text = "!find <id> or <Item Name> - Simple search to locate an item."
-            elif cmd == '!add':
-                help_text = "!add <amount> <price> <Item Name> - Add an item to the sell list (requires that you have an account)."
-            elif cmd == '!money':
-                help_text = "!money - Allows you to collect money for any sales made on your behalf."
-            elif cmd == '!relist':
-                help_text = "!relist <uid> - Allows you to relist an item which has expired."
-            elif cmd == '!info':
-                help_text = "!info - Displays basic information about your account."
-            elif cmd == '!getback':
-                help_text = "!getback <uid> - Allows you to retrieve an item that has expired or you no longer wish to sell."
-            elif cmd == '!lastseen':
-                help_text = "!lastseen <nick> - Show when <nick> was online the last time."
-            elif cmd == '!mail':
-                help_text = "!mail <nick> <message> - Send a message to <nick>."
-            elif cmd == '!irc':
-                help_text = "!irc <on|off> - Enable/disable IRC mode (the channel is also bridged to Discord)."
-            elif cmd == '!listusers' and accesslevel >= 10:
-                help_text = "!listusers - Lists all users which have a special accesslevel, e.g. they are blocked, seller or admin"
-            elif cmd == '!adduser' and accesslevel >= 10:
-                help_text = "!adduser <access level> <slots> <name> - Add a user to the bot, a seller should be added with access level 5."
-            elif cmd == '!setslots' and accesslevel == 20:
-                help_text = "!setslots <slots> <name> - Sets the number of slots available to a given user."
-            elif cmd == '!setaccess' and accesslevel == 20:
-                help_text = "!setaccess <access level> <name> - Sets access level for the player: -1 is blocked, 5 is seller and 20 is admin"
-            elif cmd == '!removeuser' and accesslevel == 20:
-                help_text = "!removeuser <name> - Removes a user from the bot, freeing their slots."
-
-            if help_text is not None:
-                mapserv.sendall(whisper(nick, help_text))
-            else:
-                mapserv.sendall(whisper(nick, "No help available for '" + cmd + "'. Type !help for a list of commands."))
-    elif msg == "!money":
-        # Trades any money earned through item sales.
-        if user == -10:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        amount = int(user.get('money'))
-        if amount == 0:
-            mapserv.sendall(whisper(nick, "You have no money to collect."))
-        else:
-            if not trader_state.Trading.acquire(False):
-                mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
-                return
-
-            trader_state.money = nick
-            player_id = beingManager.findId(nick)
-            if player_id != -10:
-                mapserv.sendall(trade_request(player_id))
-                trader_state.timer = time.time()
-            else:
-                mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
-                trader_state.reset()
-
-    elif broken_string[0] == "!find":
-        # Returns a list of items, with the corresponding Item Id - !find <id> or <item name>.
-        if len(broken_string) < 2:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        items_found = False
-        item = " ".join(broken_string[1:]) # could be an id or an item name
-
-        if item.isdigit(): # an id
-            for elem in sale_tree.root:
-                if ((time.time() - float(elem.get('add_time'))) < config.relist_time) \
-                and int(elem.get("itemId")) == int(item): # Check if an items time is up.
-                    msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
-                    + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
-                    mapserv.sendall(whisper(nick, msg))
-                    items_found = True
-        else: # an item name
-            for elem in sale_tree.root:
-                if ((time.time() - float(elem.get('add_time'))) < config.relist_time) \
-                and item.lower() in ItemDB.getItem(int(elem.get("itemId"))).name.lower(): # Check if an items time is up.
-                    msg = "[selling] [" + elem.get("uid") + "] " + elem.get("amount") + " [@@" + elem.get("itemId") + "|" \
-                    + ItemDB.getItem(int(elem.get("itemId"))).name + "@@] for " + elem.get("price") + "gp each"
-                    mapserv.sendall(whisper(nick, msg))
-                    items_found = True
-
-        if not items_found:
-            mapserv.sendall(whisper(nick, "Item not found."))
-
-    elif msg == '!tradestate':
-        # Admin command - return trade state.
-        if user == -10:
-            return
-
-        if int(user.get("accesslevel")) != 20:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if trader_state.Trading.locked():
-            mapserv.sendall(whisper(nick, "I'm busy with a trade."))
-        else:
-            mapserv.sendall(whisper(nick, "I'm free."))
-
-    elif broken_string[0] == '!identify':
-        if user == -10:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-        elif len(broken_string) != 2:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-        elif int(user.get("accesslevel")) < 10:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if broken_string[1].isdigit():
-            uid = int(broken_string[1])
-            item_info = sale_tree.get_uid(uid)
-
-            if item_info == -10:
-                mapserv.sendall(whisper(nick, "Item not found. Please check the uid number and try again."))
-                return
-
-            weight = ItemDB.item_names[int(item_info.get('itemId'))].weight*int(item_info.get("amount"))
-
-            mapserv.sendall(whisper(nick, "That item/s belongs to: "+item_info.get("name")))
-            mapserv.sendall(whisper(nick, "The weight used is: "+str(weight)+"/"+str(player_node.MaxWEIGHT)))
-
-    elif msg == '!listusers':
-        # Admin command - shows a list of all user.
-        if user == -10:
-            return
-
-        if int(user.get("accesslevel")) < 10:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        data = ''
-        total_money = 0
-        total_slots_reserved = 0
-        total_slots_used = 0
-        no_users = 0
-
-        for user in user_tree.root:
-            no_users += 1
-            name = user.get('name')
-            accesslevel = user.get('accesslevel')
-            slots = user.get('stalls')
-            total_slots_reserved += int(slots)
-            used_slots = user.get('used_stalls')
-            total_slots_used += int(used_slots)
-            money = user.get('money')
-            total_money += int(money)
-            data += name+" ("+accesslevel+") "+used_slots+"/"+slots+" "+money+'gp, '
-            # Format ManaMarket (20) 2/5 100000gp,
-
-            if len(data) > 400:
-                mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
-                data = ''
-
-        if len(data) > 0:
-            mapserv.sendall(whisper(nick, data[0:len(data)-2]+"."))
-
-        mapserv.sendall(whisper(nick,"Number of users:"+str(no_users)+ ", Sale slots used: "+ \
-        str(total_slots_used)+"/"+str(total_slots_reserved)+ ", Total Money: "+str(total_money)+\
-        ", Char slots used: "+str(len(player_node.inventory))+", Weight Used: "+\
-        str(player_node.WEIGHT)+"/"+str(player_node.MaxWEIGHT)))
-
-    elif broken_string[0] == '!setslots':
-        # Change the number of slots a user has - !setslots <slots> <name>
-        if user == -10:
-            return
-
-        if int(user.get("accesslevel")) != 20:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if len(broken_string) < 3:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if broken_string[1].isdigit():
-            slot = int(broken_string[1])
-            name = " ".join(broken_string[2:])
-
-            user_info = user_tree.get_user(name)
-
-            if user_info == -10:
-                mapserv.sendall(whisper(nick, "User not found, check and try again."))
-                return
-
-            user_tree.get_user(name).set('stalls', str(slot))
-            mapserv.sendall(whisper(nick, "Slots changed: "+name+" "+str(slot)))
-            tradey.saveData("User: "+name+", Slots changed: "+str(slot))
-            user_tree.save()
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
-    elif broken_string[0] == '!setaccess':
-        # Change someones access level - !setaccess <access level> <name>
-        if user == -10:
-            return
-
-        if int(user.get("accesslevel")) != 20:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if len(broken_string) < 3:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if (broken_string[1][0] == '-' and broken_string[1][1:].isdigit()) or broken_string[1].isdigit():
-            accesslevel = int(broken_string[1])
-            name = " ".join(broken_string[2:])
-            user_info = user_tree.get_user(name)
-
-            if user_info == -10:
-                mapserv.sendall(whisper(nick, "User not found, check and try again."))
-                return
-
-            if int(user_info.get('accesslevel')) < int(user.get("accesslevel")) and accesslevel <= int(user.get("accesslevel")):
-                user_tree.get_user(name).set('accesslevel', str(accesslevel))
-                mapserv.sendall(whisper(nick, "Access level changed:"+name+ " ("+str(accesslevel)+")."))
-                user_tree.save()
-                tradey.saveData("User: "+name+", Set Access Level: "+str(accesslevel))
-            else:
-                mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-                return
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
-
-    elif broken_string[0] == "!adduser":
-        # A command to give a user access to the bot - !adduser <access level> <stall> <player name>.
-        if user == -10:
-            return
-
-        if int(user.get("accesslevel")) < 10:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if len(broken_string) < 3:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if broken_string[1].isdigit() and broken_string[2].isdigit():
-            if int(broken_string[1]) > int(user.get("accesslevel")):
-                mapserv.sendall(whisper(nick, "You can't give someone a higher accesslevel than your own."))
-                return
-            al = int(broken_string[1])
-            stalls = int(broken_string[2])
-            player_name = " ".join(broken_string[3:])
-            pl_user = user_tree.get_user(player_name)
-            if pl_user == -10:
-                user_tree.add_user(player_name, stalls, al)
-                mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
-                tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
-            else:
-                pl_user.set("accesslevel", str(al))
-                pl_user.set("stalls", str(stalls))
-                mapserv.sendall(whisper(nick, "User Added with " + str(stalls) + " slots."))
-                tradey.saveData("User Added: "+player_name+", Slots: "+str(stalls)+", Access Level: "+str(al))
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
-    elif broken_string[0] == "!add":
-        # Allows a player with the correct permissions to add an item for sale - !add <amount> <price> <item name>
-        if user == -10:
-            mapserv.sendall(whisper(nick, "You are unable to add items. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]"))
-            return
-
-        if len(broken_string) < 3:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if int(user.get("accesslevel")) < 5:
-            mapserv.sendall(whisper(nick, "You are unable to add items."))
-            return
-
-        if int(user.get("used_stalls")) >= int(user.get("stalls")):
-            mapserv.sendall(whisper(nick, "You have no free slots.  You may remove an item or wait for something to be sold."))
-            return
-
-        if broken_string[1].isdigit() and broken_string[2].isdigit():
-            amount = int(broken_string[1])
-            price = int(broken_string[2])
-            item_name = utils.normalize_item_name(" ".join(broken_string[3:]))
-
-            item_id = ItemDB.findId(item_name)
-
-            weight = ItemDB.item_names[item_id].weight*amount
-
-            if item_id == -10:
-                mapserv.sendall(whisper(nick, "Item not found, check spelling."))
-                return
-            elif item_id in config.nosell:
-                mapserv.sendall(whisper(nick, "That item can't be added to ManaMarket, as its too heavy."))
-                return
-            elif int(weight) + player_node.WEIGHT > player_node.MaxWEIGHT:
-                mapserv.sendall(whisper(nick, "I've not got enough room left to carry those. Please try again later. "))
-                return
-
-            if amount > 1 and ItemDB.getItem(item_id).type != 'equip-ammo' and 'equip' in ItemDB.getItem(item_id).type:
-                mapserv.sendall(whisper(nick, "You can only add one piece of equipment per slot."))
-                return
-            elif price == 0 or price > 50000000:
-                mapserv.sendall(whisper(nick, "Please use a valid price between 1-50000000gp."))
-                return
-            elif amount == 0:
-                mapserv.sendall(whisper(nick, "You can't add 0 of an item."))
-                return
-
-            item = Item()
-            item.player = nick
-            item.get = 1 # 1 = get, 0 = give
-            item.id = item_id
-            item.amount = amount
-            item.price = price
-
-            if not trader_state.Trading.acquire(False):
-                mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
-                return
-
-            trader_state.item = item
-            player_id = beingManager.findId(nick)
-            if player_id != -10:
-                mapserv.sendall(trade_request(player_id))
-                trader_state.timer = time.time()
-            else:
-                mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
-                trader_state.reset()
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
-    elif broken_string[0] == "!buy":
-        # Buy a given quantity of an item - !buy <amount> <uid>
-        if len(broken_string) != 3:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if broken_string[1].isdigit() and broken_string[2].isdigit():
-            amount = int(broken_string[1])
-            uid = int(broken_string[2])
-            item_info = sale_tree.get_uid(uid)
-
-            if item_info == -10:
-                mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
-                return
-
-            if amount > int(item_info.get("amount")):
-                mapserv.sendall(whisper(nick, "I do not have that many."))
-                return
-
-            if item_info.get("name") == nick:
-                mapserv.sendall(whisper(nick, "You can not buy your own items. To get back the item whisper me !getback "+broken_string[2]))
-                return
-
-            item = Item()
-            item.get = 0 # 1 = get, 0 = give
-            item.player = nick
-            item.id = int(item_info.get("itemId"))
-            item.uid = uid
-            item.amount = amount
-            item.price = int(item_info.get("price"))
-
-            if not trader_state.Trading.acquire(False):
-                mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
-                return
-
-            trader_state.item = item
-            player_id = beingManager.findId(nick)
-            if player_id != -10:
-                mapserv.sendall(trade_request(player_id))
-                trader_state.timer = time.time()
-                mapserv.sendall(whisper(nick, "That will be " + str(item.price * item.amount) + "gp."))
-            else:
-                mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
-                trader_state.reset()
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
-    elif broken_string[0] == "!removeuser":
-        # Remove a user, for whatever reason - !removeuser <player name>
-        if user == -10:
-            return
-
-        if len(broken_string) < 2:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if int(user.get("accesslevel")) != 20:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        player_name = " ".join(broken_string[1:])
-        check = user_tree.remove_user(player_name)
-        if check == 1:
-            mapserv.sendall(whisper(nick, "User Removed."))
-            tradey.saveData("User Removed: "+player_name)
-        elif check == -10:
-            mapserv.sendall(whisper(nick, "User removal failed. Please check spelling."))
-
-    elif broken_string[0] == "!relist":
-        # Relist an item which has expired - !relist <uid>.
-        if user == -10 or len(broken_string) != 2:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if int(user.get("accesslevel")) < 5:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if broken_string[1].isdigit():
-            uid = int(broken_string[1])
-            item_info = sale_tree.get_uid(uid)
-
-            if item_info == -10:
-                mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
-                return
-
-            if item_info.get('name') != nick:
-                mapserv.sendall(whisper(nick, "That doesn't belong to you!"))
-                return
-
-            time_relisted = int(item_info.get('relisted'))
-
-            if int(item_info.get('relisted')) < 3:
-                sale_tree.get_uid(uid).set('add_time', str(time.time()))
-                sale_tree.get_uid(uid).set('relisted', str(time_relisted + 1))
-                sale_tree.save()
-                mapserv.sendall(whisper(nick, "The item has been successfully relisted."))
-                user_tree.get_user(nick).set('last_use', str(time.time()))
-                user_tree.save()
-            else:
-                mapserv.sendall(whisper(nick, "This item can no longer be relisted. Please collect it using !getback "+str(uid)+"."))
-                return
-        else:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-
-    elif broken_string[0] == "!getback":
-        # Trade the player back uid, remove from sale_items if trade successful - !getback <uid>.
-        if user == -10 or len(broken_string) != 2:
-            mapserv.sendall(whisper(nick, "Syntax incorrect."))
-            return
-
-        if int(user.get("accesslevel")) < 5 and int(user.get("accesslevel")) > 0:
-            mapserv.sendall(whisper(nick, "You don't have the correct permissions."))
-            return
-
-        if broken_string[1].isdigit():
-            uid = int(broken_string[1])
-            item_info = sale_tree.get_uid(uid)
-
-            if item_info == -10:
-                mapserv.sendall(whisper(nick, "Item not found.  Please check the uid number and try again."))
-                return
-
-            if item_info.get('name') != nick:
-                mapserv.sendall(whisper(nick, "That doesn't belong to you!"))
-                return
-
-            item = Item()
-            item.get = 0
-            item.player = nick
-            item.id = int(item_info.get("itemId"))
-            item.uid = uid
-            item.amount = int(item_info.get("amount"))
-            item.price = 0
-
-            if not trader_state.Trading.acquire(False):
-                mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
-                return
-
-            trader_state.item = item
-            player_id = beingManager.findId(nick)
-            if player_id != -10:
-                mapserv.sendall(trade_request(player_id))
-                trader_state.timer = time.time()
-            else:
-                mapserv.sendall(whisper(nick, "Where are you?!?  I can't trade with somebody who isn't here!"))
-                trader_state.reset()
-    elif broken_string[0] == "!lastseen":
-        who = msg[10:].strip()
-        if len(who) == 0:
-            mapserv.sendall(whisper(nick, "Usage: !lastseen <nick>"))
-        else:
-            ls_info = db_manager.get_lastseen_info(who)
-            mapserv.sendall(whisper(nick, ls_info))
-    elif broken_string[0] == "!mail":
-        if user == -10:
-            mapserv.sendall(whisper(nick, "Your current access level is 0. Request access in [@@https://forums.themanaworld.org/viewtopic.php?f=14&t=14010|ManaMarket's forum thread@@]"))
-            return
-
-        to_, msg_ = utils.parse_mail_cmdargs(msg[6:].strip())
-        if to_ == "" or msg_ == "":
-            mapserv.sendall(whisper(nick, "Usage: !mail <nick> <message> OR !mail \"nick with spaces\" <message>"))
-        else:
-            db_manager.send_mail(nick, to_, msg_)
-            mapserv.sendall(whisper(nick, f'Message to "{to_}" sent'))
-
-    elif broken_string[0] == "!irc":
-        if len(broken_string) < 2:
-            mapserv.sendall(whisper(nick, "Incorrect syntax."))
-            return
-        if broken_string[1] == "on":
-            if user == -10:
-                user_tree.add_user(nick, 0, 0)
-                user = user_tree.get_user(nick)
-            user.set("irc", "on")
-            user_tree.save()
-            tradey.saveData("IRC relay enabled for "+nick)
-            mapserv.sendall(whisper(nick, "IRC relay mode is now enabled (the channel is also bridged to Discord)."))
-        elif broken_string[1] == "off":
-            if user != -10:
-                if int(user.get("accesslevel")) == 0 and int(user.get("stalls")) == 0 and int(user.get("money")) == 0:
-                    user_tree.remove_user(nick)
-                    tradey.saveData("Stub User Removed: "+nick)
-                else:
-                    user.set("irc", "off")
-                    user_tree.save()
-                    tradey.saveData("IRC relay disabled for "+nick)
-            mapserv.sendall(whisper(nick, "IRC relay mode is now disabled."))
-
-    elif user != -10 and user.get("irc") == "on":
-            if not ircbot.isAFK(msg): # if not an AFK message
-                ircbot.send(nick, msg)
-                db_manager.forEachOnline(broadcast_if_irc_on, nick, f"TMW.{nick}: {msg}")
-    elif broken_string[0].startswith('!'):
-        # A failed command attempt from a non-relay user: give a helpful hint
-        # instead of feeding the typo to the chatbot. Relay users fall through
-        # the branch above so their Elanore IRC commands still reach the channel.
-        mapserv.sendall(whisper(nick, "Command not recognised, please whisper me !help for a full list of commands."))
-    else:
-        response = chatbot.respond(msg)
-        logger.info("Bot Response: "+response)
-        mapserv.sendall(whisper(nick, response))
+    try:
+        cmd.fn(ctx)
+    except Reply as r:
+        ctx.reply(r.message)
 
 def broadcast_from_irc(nick, msg):
     db_manager.forEachOnline(broadcast_if_irc_on, "IRC", f"IRC.{nick}: {msg}")

@@ -1,0 +1,5 @@
+[project]
+name = "manamarket"
+version = "0"
+description = "ManaMarket, a trading bot for The Mana World"
+requires-python = ">=3.10"

@@ -1,4 +1,4 @@
 test:
-  image: python:3.6
+  image: python:3.14
   script:
     - python -m unittest discover tests -v

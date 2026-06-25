@@ -124,7 +124,7 @@ class IRCBot:
                 # Keep the IRC thread alive on transient errors so a
                 # single hiccup doesn't kill the bridge for the whole
                 # process lifetime.
-                print("IRC reactor error: %s" % e)
+                print(f"IRC reactor error: {e}")
                 self.conn = None
                 self._ready = False
 
@@ -138,7 +138,7 @@ class IRCBot:
                     username=config.irc_user, ircname=config.irc_realname)
                 return True
             except irc.client.ServerConnectionError as e:
-                print("IRC connect failed: %s (retry in %ds)" % (e, delay))
+                print(f"IRC connect failed: {e} (retry in {delay}s)")
                 # Sleep in 1s chunks so stop() can interrupt the wait
                 # promptly during shutdown.
                 for _ in range(delay):
@@ -149,12 +149,12 @@ class IRCBot:
         return False
 
     def __on_connect(self, conn, event):
-        print("Connected to IRC on %s:%i" % (config.irc_server, config.irc_port))
+        print(f"Connected to IRC on {config.irc_server}:{config.irc_port}")
         if irc.client.is_channel(config.irc_channel):
             self.conn.join(config.irc_channel)
 
     def __on_join(self, conn, event):
-        print("Joined channel %s" % config.irc_channel)
+        print(f"Joined channel {config.irc_channel}")
         self._ready = True
 
     def __on_pubmsg(self, conn, event):
@@ -166,7 +166,7 @@ class IRCBot:
         # the current thread). Just clear the connection; the outer
         # loop in __client_threadfunc will reconnect with backoff.
         message = event.arguments[0] if event.arguments else ""
-        print("Disconnected from IRC: %s" % message)
+        print(f"Disconnected from IRC: {message}")
         self._ready = False
         self.conn = None
 
@@ -190,10 +190,10 @@ class IRCBot:
         if not msg:
             return # if the message is empty, discard it
         if msg[:1] == "!":
-            self.conn.privmsg(config.irc_channel, "Command sent from TMW by %s:" % nick)
+            self.conn.privmsg(config.irc_channel, f"Command sent from TMW by {nick}:")
             self.conn.privmsg(config.irc_channel, msg)
         else:
-            self.conn.privmsg(config.irc_channel, "<%s> %s" % (nick, msg))
+            self.conn.privmsg(config.irc_channel, f"<{nick}> {msg}")
 
     def start(self):
         if not getattr(config, 'irc_enabled', True):

@@ -93,7 +93,7 @@ class SqliteDbManager:
             cur = db.cursor()
         except sqlite3.Error as e:
             # self.logger.error("sqlite3 error: %s", e)
-            print("sqlite3 error: %s" % e)
+            print(f"sqlite3 error: {e}")
             sys.exit(1)
         return db, cur
 
@@ -110,13 +110,13 @@ class SqliteDbManager:
             self.db.commit()   # NOTE: do I need it?
             row = self.cur.fetchone()
         except sqlite3.Error as e:
-            print("sqlite3 error: %s" % e)
+            print(f"sqlite3 error: {e}")
             row = ["although I do not remember when."]
 
         if row:
-            return '%s was seen %s' % (nick, row[0])
+            return f'{nick} was seen {row[0]}'
         else:
-            return '%s was never seen' % nick
+            return f'{nick} was never seen'
 
     def __lastseen_threadfunc(self):
         print('__lastseen_threadfunc started')
@@ -136,7 +136,7 @@ class SqliteDbManager:
                              (from_,to_,message))
             self.db.commit()
         except sqlite3.Error as e:
-            print("sqlite3 error: %s" % e)
+            print(f"sqlite3 error: {e}")
 
     def get_unread_mails(self, nick, db=None, cur=None):
         try:
@@ -152,7 +152,7 @@ class SqliteDbManager:
                         (nick,))
             db.commit()
         except sqlite3.Error as e:
-            print("sqlite3 error: %s" % e)
+            print(f"sqlite3 error: {e}")
             mails = []
         return mails
 
@@ -166,10 +166,10 @@ class SqliteDbManager:
                     mail = self.get_unread_mails(u, db, cur)
                     nm = len(mail)
                     if nm > 0:
-                        self.mapserv.sendall(whisper(u, "You have %d new mails:" % (nm,)))
+                        self.mapserv.sendall(whisper(u, f"You have {nm} new mails:"))
                         time.sleep(0.7)
                         for m in mail:
-                            msg = "From %s : %s" % (m[0], m[1])
+                            msg = f"From {m[0]} : {m[1]}"
                             self.mapserv.sendall(whisper(u, msg))
                             time.sleep(0.7)
                 self._timer = time.time()

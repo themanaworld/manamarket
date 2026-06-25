@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
     Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
     Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
@@ -55,14 +55,14 @@ class Player:
                     break
 
             if not item_found:
-                return "Server and client inventory out of sync: missing %i (x%i)" % (int(elem.get('itemId')), int(elem.get('amount')))
+                return f"Server and client inventory out of sync: missing {int(elem.get('itemId'))} (x{int(elem.get('amount'))})"
 
         total_money = 0
         for user in user_tree.root:
             total_money += int(user.get('money'))
 
         if total_money != self.MONEY:
-            return "Server and client money out of sync. Market: %s Player %s" % (total_money, self.MONEY)
+            return f"Server and client money out of sync. Market: {total_money} Player {self.MONEY}"
 
         return 0
 

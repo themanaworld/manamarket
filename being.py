@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
     Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
     Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>

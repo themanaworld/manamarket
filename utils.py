@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
     Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
     Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
@@ -26,7 +26,7 @@ def parse_ip(a):
     >>> parse_ip(0xC0A80101)
     '1.1.168.192'
     """
-    return "%s.%s.%s.%s" % ((a % 256),((a >> 8) % 256),((a >> 16) % 256),((a >> 24) % 256))
+    return f"{a % 256}.{(a >> 8) % 256}.{(a >> 16) % 256}.{(a >> 24) % 256}"
 
 # Remove colors from a message
 def remove_colors(msg):
@@ -168,9 +168,8 @@ class ItemLog:
         self.log_file = 'data/logs/sale.log'
 
     def add_item(self, item_id, amount, price, name):
-        file_node = open(self.log_file, 'a')
-        file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+" "+name+"\n")
-        file_node.close()
+        with open(self.log_file, 'a') as file_node:
+            file_node.write(str(item_id)+" "+str(amount)+" "+str(price)+" "+str(time.time())+" "+name+"\n")
 
 class TraderState:
     """ Stores information regarding a trade request"""
@@ -220,4 +219,4 @@ if __name__ == '__main__':
     import doctest
     failures, tests = doctest.testmod()
     if failures == 0:
-        print("All %d doctests passed" % tests)
+        print(f"All {tests} doctests passed")

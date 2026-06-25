@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
 Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
 Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
@@ -718,7 +718,7 @@ def process_whisper(nick, msg, mapserv):
             mapserv.sendall(whisper(nick, "Usage: !mail <nick> <message> OR !mail \"nick with spaces\" <message>"))
         else:
             db_manager.send_mail(nick, to_, msg_)
-            mapserv.sendall(whisper(nick, "Message to \"%s\" sent" % (to_)))
+            mapserv.sendall(whisper(nick, f'Message to "{to_}" sent'))
 
     elif broken_string[0] == "!irc":
         if len(broken_string) < 2:
@@ -746,7 +746,7 @@ def process_whisper(nick, msg, mapserv):
     elif user != -10 and user.get("irc") == "on":
             if not ircbot.isAFK(msg): # if not an AFK message
                 ircbot.send(nick, msg)
-                db_manager.forEachOnline(broadcast_if_irc_on, nick, "TMW.%s: %s" % (nick, msg))
+                db_manager.forEachOnline(broadcast_if_irc_on, nick, f"TMW.{nick}: {msg}")
     elif broken_string[0].startswith('!'):
         # A failed command attempt from a non-relay user: give a helpful hint
         # instead of feeding the typo to the chatbot. Relay users fall through
@@ -758,7 +758,7 @@ def process_whisper(nick, msg, mapserv):
         mapserv.sendall(whisper(nick, response))
 
 def broadcast_from_irc(nick, msg):
-    db_manager.forEachOnline(broadcast_if_irc_on, "IRC", u"IRC.%s: %s" % (nick, msg))
+    db_manager.forEachOnline(broadcast_if_irc_on, "IRC", f"IRC.{nick}: {msg}")
 
 def broadcast_if_irc_on(pl, sender_nick, msg):
     if sender_nick == pl:
@@ -1231,11 +1231,11 @@ def main():
                             # index & amount are Always 0
                             if player_node.inventory[index].itemId != trader_state.item.id or \
                                 amount != trader_state.item.amount:
-                                logger.info("Index: %s" % index)
-                                logger.info("P.ItemId: %s" % player_node.inventory[index].itemId)
-                                logger.info("T.ItemId: %s" % trader_state.item.id)
-                                logger.info("P.Amount: %s" % amount)
-                                logger.info("T.Amount: %s" % trader_state.item.amount)
+                                logger.info(f"Index: {index}")
+                                logger.info(f"P.ItemId: {player_node.inventory[index].itemId}")
+                                logger.info(f"T.ItemId: {trader_state.item.id}")
+                                logger.info(f"P.Amount: {amount}")
+                                logger.info(f"T.Amount: {trader_state.item.amount}")
                                 #mapserv.sendall(bytes(PacketOut(CMSG_TRADE_CANCEL_REQUEST)))
 
                     # If Trade item add successful - Remove the item from the inventory state.

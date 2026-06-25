@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
     Copyright 2011, Dipesh Amin <yaypunkrock@gmail.com>
     Copyright 2011, Stefan Beller <stefanbeller@googlemail.com>
@@ -69,10 +69,9 @@ class UserTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        f = open('data/user.xml', 'w')
         dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root, encoding='unicode')))
-        f.write(dom.toprettyxml('    '))
-        f.close()
+        with open('data/user.xml', 'w') as f:
+            f.write(dom.toprettyxml('    '))
 
 class ItemTree:
     def __init__(self):
@@ -122,10 +121,9 @@ class ItemTree:
 
     def save(self):
         # Be sure to call save() after any changes to the tree.
-        f = open('data/sale.xml', 'w')
         dom = xml.dom.minidom.parseString(clean_xml(tostring(self.root, encoding='unicode')))
-        f.write(dom.toprettyxml('    '))
-        f.close()
+        with open('data/sale.xml', 'w') as f:
+            f.write(dom.toprettyxml('    '))
 
 def saveData(commitmessage = "commit"):
     # This assumes the current working directory is the tradey directory.

@@ -757,8 +757,11 @@ def process_whisper(nick, msg, mapserv):
         logger.info("Bot Response: "+response)
         mapserv.sendall(whisper(nick, response))
 
-def broadcast_from_irc(nick, msg):
-    db_manager.forEachOnline(broadcast_if_irc_on, "IRC", f"IRC.{nick}: {msg}")
+def broadcast_from_irc(nick, msg, action=False):
+    # Wrap the whole line in asterisks for actions: the receiving client
+    # strips them and renders it as an emote (no colon), matching /me.
+    text = f"*IRC.{nick} {msg}*" if action else f"IRC.{nick}: {msg}"
+    db_manager.forEachOnline(broadcast_if_irc_on, "IRC", text)
 
 def broadcast_if_irc_on(pl, sender_nick, msg):
     if sender_nick == pl:

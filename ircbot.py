@@ -107,6 +107,8 @@ class IRCBot:
         self._reactor.add_global_handler("welcome", self.__on_connect)
         self._reactor.add_global_handler("join", self.__on_join)
         self._reactor.add_global_handler("pubmsg", self.__on_pubmsg)
+        # /me arrives as CTCP ACTION, dispatched as "action" not "pubmsg".
+        self._reactor.add_global_handler("action", self.__on_action)
         self._reactor.add_global_handler("disconnect", self.__on_disconnect)
         # Outer loop: keep trying to maintain an IRC connection while
         # the bot is active. The irc library invokes "disconnect"
@@ -159,6 +161,9 @@ class IRCBot:
 
     def __on_pubmsg(self, conn, event):
         self.broadcastFunc(event.source.nick, event.arguments[0])
+
+    def __on_action(self, conn, event):
+        self.broadcastFunc(event.source.nick, event.arguments[0], action=True)
 
     def __on_disconnect(self, conn, event):
         # Invoked synchronously from inside the reactor loop on the

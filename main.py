@@ -82,6 +82,12 @@ trading_enabled = True
 # working even while trading is disabled.
 TRADE_COMMANDS = {"!money", "!add", "!buy", "!buyitem", "!relist", "!getback"}
 
+# The server won't let one character hold more than this many of a single item.
+# We only use it for a courtesy heads-up before starting an !add trade; the
+# authoritative bookkeeping is the received-amount delta computed once the
+# trade completes, which also covers weight/slot limits this can't foresee.
+MAX_ITEM_AMOUNT = 30000
+
 
 def process_whisper(nick, msg, mapserv):
     msg = ''.join(c for c in msg if c in utils.allowed_chars)
@@ -532,12 +538,33 @@ def process_whisper(nick, msg, mapserv):
                 mapserv.sendall(whisper(nick, "You can't add 0 of an item."))
                 return
 
+            # Courtesy heads-up: if we already hold enough of this item that the
+            # server would refuse the full amount, say so now rather than after a
+            # pointless trade. This is only a best-effort hint (it can't see
+            # weight or free-slot limits); the received-amount delta below stays
+            # the source of truth for what actually gets listed.
+            held = player_node.held_amount(item_id)
+            if held + amount > MAX_ITEM_AMOUNT:
+                if held >= MAX_ITEM_AMOUNT:
+                    mapserv.sendall(whisper(nick, f"I already hold the most I can of that item ({MAX_ITEM_AMOUNT}), so I can't take any more."))
+                else:
+                    mapserv.sendall(whisper(nick, f"I can only take {MAX_ITEM_AMOUNT - held} more of that item."))
+                return
+
             item = Item()
             item.player = nick
             item.get = 1 # 1 = get, 0 = give
             item.id = item_id
             item.amount = amount
             item.price = price
+            # Remember how much of this item we already hold, so that once the
+            # trade completes we can list exactly what actually arrived rather
+            # than what was offered. The server refuses adds it can't fully
+            # honour (e.g. a stack would pass 30000, or we're overweight), yet
+            # still completes the trade, so the offered and received amounts can
+            # differ. Listing the offered amount is what causes the "inventory
+            # mismatch" that disables trading.
+            item.held_before = player_node.held_amount(item_id)
 
             if not trader_state.Trading.acquire(False):
                 mapserv.sendall(whisper(nick, "I'm currently busy with a trade.  Try again shortly"))
@@ -1290,11 +1317,24 @@ def main():
                 # The sale_tree is only ammended after a complete trade packet.
                 if trader_state.item and trader_state.money == 0:
                     if trader_state.item.get == 1: # !add
-                        sale_tree.add_item(trader_state.item.player, trader_state.item.id, trader_state.item.amount, trader_state.item.price)
-                        user_tree.get_user(trader_state.item.player).set('used_stalls', \
-                            str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
-                        user_tree.get_user(trader_state.item.player).set('last_use', str(time.time()))
-                        commitMessage = "Add"
+                        # List what actually arrived, not what was offered. The
+                        # inventory-add packet is processed before this one, so
+                        # the delta against our pre-trade holdings is exactly
+                        # what the server let us keep.
+                        received = player_node.held_amount(trader_state.item.id) - trader_state.item.held_before
+                        if received <= 0:
+                            mapserv.sendall(whisper(trader_state.item.player, \
+                                "I couldn't accept those, so nothing was listed. I may already be holding as many of that item as I can carry."))
+                            commitMessage = "Add (nothing received)"
+                        else:
+                            sale_tree.add_item(trader_state.item.player, trader_state.item.id, received, trader_state.item.price)
+                            user_tree.get_user(trader_state.item.player).set('used_stalls', \
+                                str(int(user_tree.get_user(trader_state.item.player).get('used_stalls')) + 1))
+                            user_tree.get_user(trader_state.item.player).set('last_use', str(time.time()))
+                            if received < trader_state.item.amount:
+                                mapserv.sendall(whisper(trader_state.item.player, \
+                                    f"I could only take {received} of the {trader_state.item.amount} you offered; the rest stayed with you."))
+                            commitMessage = "Add"
 
                     elif trader_state.item.get == 0: # !buy \ !getback
                         seller = sale_tree.get_uid(trader_state.item.uid).get('name')

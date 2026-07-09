@@ -34,6 +34,12 @@ class Player:
                     return item
         return -10 # Not found - bug somewhere!
 
+    def held_amount(self, item_id):
+        # Total quantity of item_id the bot actually holds right now, summed
+        # across every inventory slot it may be spread over.
+        return sum(item.amount for item in self.inventory.values()
+                   if item.itemId == item_id)
+
     def remove_item(self, index, amount):
         if index in self.inventory:
             self.inventory[index].amount -= amount

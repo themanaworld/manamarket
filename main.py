@@ -772,7 +772,8 @@ def process_whisper(nick, msg, mapserv):
 
     elif user != -10 and user.get("irc") == "on":
             if not ircbot.isAFK(msg): # if not an AFK message
-                ircbot.send(nick, msg)
+                if not ircbot.send(nick, msg):
+                    mapserv.sendall(whisper(nick, "Sorry, the IRC bridge seems to be down at the moment. Your message was not relayed."))
                 db_manager.forEachOnline(broadcast_if_irc_on, nick, f"TMW.{nick}: {msg}")
     elif broken_string[0].startswith('!'):
         # A failed command attempt from a non-relay user: give a helpful hint

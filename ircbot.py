@@ -1,4 +1,5 @@
 import sys
+import socket
 import threading
 import time
 import irc.client
@@ -138,6 +139,15 @@ class IRCBot:
                     config.irc_server, config.irc_port, config.irc_nick,
                     password=config.irc_password,
                     username=config.irc_user, ircname=config.irc_realname)
+                # TCP keepalive so a silently dead connection (a drop
+                # without RST/FIN, e.g. an expired NAT entry) surfaces
+                # within roughly a minute even while the channel is
+                # quiet. Probes start after 30s idle, 3 probes 10s
+                # apart before the kernel declares the peer dead.
+                self.conn.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                self.conn.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
+                self.conn.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+                self.conn.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
                 return True
             except irc.client.ServerConnectionError as e:
                 print(f"IRC connect failed: {e} (retry in {delay}s)")
@@ -156,6 +166,10 @@ class IRCBot:
             self.conn.join(config.irc_channel)
 
     def __on_join(self, conn, event):
+        # JOIN events fire for every user entering the channel, not
+        # just us; only our own join means we can start relaying.
+        if event.source.nick != conn.get_nickname():
+            return
         print(f"Joined channel {config.irc_channel}")
         self._ready = True
 
@@ -189,16 +203,26 @@ class IRCBot:
         return msg
 
     def send(self, nick, msg):
+        """Relay an in-game whisper to IRC. Returns False when the
+        message could not be sent (not connected, dead socket)."""
         if not self._ready:
-            return
+            return False
         msg = self.manaplusToIRC(msg)
         if not msg:
-            return # if the message is empty, discard it
-        if msg[:1] == "!":
-            self.conn.privmsg(config.irc_channel, f"Command sent from TMW by {nick}:")
-            self.conn.privmsg(config.irc_channel, msg)
-        else:
-            self.conn.privmsg(config.irc_channel, f"<{nick}> {msg}")
+            return True # if the message is empty, discard it
+        try:
+            if msg[:1] == "!":
+                self.conn.privmsg(config.irc_channel, f"Command sent from TMW by {nick}:")
+                self.conn.privmsg(config.irc_channel, msg)
+            else:
+                self.conn.privmsg(config.irc_channel, f"<{nick}> {msg}")
+        except Exception as e:
+            # A dead socket surfaces here; just report it. The reactor
+            # loop tears the connection down on the next socket event
+            # (or keepalive timeout) and reconnects on its own.
+            print(f"IRC send failed: {e}")
+            return False
+        return True
 
     def start(self):
         if not getattr(config, 'irc_enabled', True):
